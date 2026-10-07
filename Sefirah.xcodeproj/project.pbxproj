@@ -123,6 +123,8 @@
 		DC92DC6BC8045072D1508408 /* VideoCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76CC599FA52C0B70FF90105 /* VideoCodecTests.swift */; };
 		DCC017F124DBB8F2BDD33CAE /* ServerLauncherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6CA594975B0264C8311DAA4 /* ServerLauncherTests.swift */; };
 		E0F0BAC73BBE4F9682A26E1D /* ScrcpyDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DBBF0D9C8C172D1057C53A /* ScrcpyDiagnostics.swift */; };
+		8A7B6C5D4E3F2A1B0C9D8E7F /* ScrcpyAppWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F4B6A8C0D1E2F3A4B5C6D7E /* ScrcpyAppWrapper.swift */; };
+		7D8E9F0A1B2C3D4E5F607182 /* ScrcpyAppRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C5B4A39281706F5E4D3C2B1 /* ScrcpyAppRunner.swift */; };
 		E3278A60265B3D3AB2221415 /* scrcpy-server in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8F37C060CACB47C6F88B1220 /* scrcpy-server */; };
 		E3456E02EBFBA4E91C9A1026 /* MirrorInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CEAAD057757E8464D280AD0 /* MirrorInput.swift */; };
 		E7F83710B3D52F439A3E8755 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14540E58A87FFE38D9A2778C /* SettingsView.swift */; };
@@ -271,6 +273,8 @@
 		81F13627FD5E2EAB85E1D013 /* MirrorSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorSessionTests.swift; sourceTree = "<group>"; };
 		8333D2E641750241B76A5E38 /* scrcpy */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = scrcpy; sourceTree = "<group>"; };
 		83DBBF0D9C8C172D1057C53A /* ScrcpyDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyDiagnostics.swift; sourceTree = "<group>"; };
+		2F4B6A8C0D1E2F3A4B5C6D7E /* ScrcpyAppWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyAppWrapper.swift; sourceTree = "<group>"; };
+		6C5B4A39281706F5E4D3C2B1 /* ScrcpyAppRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyAppRunner.swift; sourceTree = "<group>"; };
 		84249927B6D2C5C3196FC1E9 /* MainSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSplitView.swift; sourceTree = "<group>"; };
 		876E784C4DF5D4DB8653C43B /* MirrorEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorEvent.swift; sourceTree = "<group>"; };
 		8897F5BCE157362243909826 /* MediaPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPacket.swift; sourceTree = "<group>"; };
@@ -602,6 +606,8 @@
 				191AB1E1696D495E11676F45 /* MirrorSurfaceView.swift */,
 				0703BF3951AD7849A9445FF2 /* MirrorToolbar.swift */,
 				A58E677DB1D3773143F6258E /* MirrorView.swift */,
+				2F4B6A8C0D1E2F3A4B5C6D7E /* ScrcpyAppWrapper.swift */,
+				6C5B4A39281706F5E4D3C2B1 /* ScrcpyAppRunner.swift */,
 			);
 			path = Mirror;
 			sourceTree = "<group>";
@@ -1034,6 +1040,8 @@
 				BB57AA844B676052D905B71E /* MirrorSettingsView.swift in Sources */,
 				AFA24FF92E304D155E3281C1 /* MirrorSurfaceView.swift in Sources */,
 				D9978DC830764437000D384B /* MacMediaController.swift in Sources */,
+				8A7B6C5D4E3F2A1B0C9D8E7F /* ScrcpyAppWrapper.swift in Sources */,
+				7D8E9F0A1B2C3D4E5F607182 /* ScrcpyAppRunner.swift in Sources */,
 				E9EFF13AD4F058352D99D92B /* MirrorToolbar.swift in Sources */,
 				84567157ABC6F53EB6E24914 /* MirrorView.swift in Sources */,
 				643D0B086082C9F2DB1F8619 /* NotificationFeedView.swift in Sources */,

@@ -7,6 +7,9 @@ public enum ScrcpyExit: Equatable, Sendable {
     case failure(code: Int32, stderr: String)
     /// SIGKILL (9) typically = code-signature rejection.
     case signaled(Int32, stderr: String)
+    /// The process was launched through LaunchServices, so no wait status is available; the run
+    /// ended with errors in its captured log (clean exits are reported as `.normal`).
+    case reported(stderr: String)
 
     public static let okCodes: Set<Int32> = [0, 2]
 }

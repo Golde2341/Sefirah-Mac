@@ -97,7 +97,7 @@ final class AppModel: PairingDecider {
     private let localDevice: LocalDeviceRecord
     private let bundledTools = BundledTools.locate()
     private let nativeTools = NativeTools.locate()
-    private let scrcpyRunner: any ScrcpyRunning = ScrcpyProcessRunner()
+    private let scrcpyRunner: any ScrcpyRunning = ScrcpyRunnerRouter()
     private let commandRunner: any CommandRunning = ProcessCommandRunner()
     private let macNotifications = MacNotificationDelivery.shared
     private let clipboardMonitor = ClipboardSyncMonitor()
@@ -500,6 +500,15 @@ final class AppModel: PairingDecider {
             toolFailure = ToolFailure(
                 title: "scrcpy exited (code \(code))",
                 message: ScrcpyDiagnostics.hint(exit: exit) ?? "scrcpy reported an error.",
+                detail: stderr.isEmpty ? plan.executable.path : stderr,
+                retryAction: { [weak self] in
+                    self?.launchScrcpy(package: package, appName: appName)
+                }
+            )
+        case .reported(let stderr):
+            toolFailure = ToolFailure(
+                title: "scrcpy reported an error",
+                message: ScrcpyDiagnostics.hint(exit: exit) ?? "scrcpy exited with an error.",
                 detail: stderr.isEmpty ? plan.executable.path : stderr,
                 retryAction: { [weak self] in
                     self?.launchScrcpy(package: package, appName: appName)

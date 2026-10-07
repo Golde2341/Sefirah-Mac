@@ -13,6 +13,8 @@ public enum ScrcpyDiagnostics {
             return hint(stderr: stderr)
         case .failure(_, let stderr):
             return hint(stderr: stderr)
+        case .reported(let stderr):
+            return hint(stderr: stderr)
         }
     }
 
