@@ -1,110 +1,74 @@
+import AppKit
 import Foundation
+import OSLog
 import SefirahCore
-import UserNotifications
 
+/// Posts mirrored phone notifications through the bundled `Sefirah Phone` helper app, so they
+/// carry the phone icon while Sefirah's own app icon stays untouched. The helper relays clicks
+/// back through a `sefirah://notification` URL handled by `AppModel`.
 @MainActor
-final class MacNotificationDelivery: NSObject, UNUserNotificationCenterDelegate {
+final class MacNotificationDelivery {
     static let shared = MacNotificationDelivery()
+    private nonisolated static let log = Logger(subsystem: "io.github.madeye.sefirah.mac", category: "notifications")
 
-    var onNotificationClick: ((_ deviceID: String, _ appPackage: String, _ appName: String?) -> Void)?
-
-    private let center = UNUserNotificationCenter.current()
-
-    private override init() {
-        super.init()
+    private struct Payload: Encodable {
+        var identifier: String
+        var title: String
+        var subtitle: String
+        var body: String
+        var deviceID: String
+        var appPackage: String
+        var appName: String?
     }
 
-    /// Registers the app as the notification center delegate before launch completes.
-    func configure() {
-        center.delegate = self
-    }
-
-    /// Requests the notification interactions Sefirah uses for synchronized phone alerts.
-    @discardableResult
-    func requestAuthorizationIfNeeded() async -> Bool {
-        let settings = await center.notificationSettings()
-
-        switch settings.authorizationStatus {
-        case .authorized, .provisional, .ephemeral:
-            return true
-        case .notDetermined:
-            do {
-                return try await center.requestAuthorization(options: [.alert, .sound])
-            } catch {
-                return false
-            }
-        case .denied:
-            return false
-        @unknown default:
-            return false
-        }
-    }
+    private init() {}
 
     func deliver(_ notification: NotificationInfo, from deviceID: String) {
-        guard notification.infoType == .new else { return }
+        guard notification.infoType == .new,
+              let appPackage = notification.appPackage?.nonEmpty
+        else { return }
 
-        Task {
-            guard await requestAuthorizationIfNeeded() else { return }
-
-            let content = UNMutableNotificationContent()
-            content.title = notification.title?.nonEmpty ?? notification.appName?.nonEmpty ?? "New notification"
-            content.subtitle = notification.appName?.nonEmpty ?? ""
-            content.body = notification.text?.nonEmpty ?? ""
-            content.sound = .default
-            var userInfo: [String: Any] = [
-                "deviceID": deviceID,
-                "notificationKey": notification.notificationKey,
-            ]
-            if let appPackage = notification.appPackage?.nonEmpty {
-                userInfo["appPackage"] = appPackage
-            }
-            if let appName = notification.appName?.nonEmpty {
-                userInfo["appName"] = appName
-            }
-            content.userInfo = userInfo
-
-            let request = UNNotificationRequest(
-                identifier: identifier(for: notification.notificationKey, deviceID: deviceID),
-                content: content,
-                trigger: nil
-            )
-
-            try? await center.add(request)
-        }
+        let payload = Payload(
+            identifier: Self.identifier(for: notification.notificationKey, deviceID: deviceID),
+            title: notification.title?.nonEmpty ?? notification.appName?.nonEmpty ?? "New notification",
+            subtitle: notification.appName?.nonEmpty ?? "",
+            body: notification.text?.nonEmpty ?? "",
+            deviceID: deviceID,
+            appPackage: appPackage,
+            appName: notification.appName?.nonEmpty
+        )
+        guard let data = try? JSONEncoder().encode(payload) else { return }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-notification-\(UUID().uuidString).json")
+        guard (try? data.write(to: url)) != nil else { return }
+        launch(arguments: ["--deliver", url.path])
     }
 
     func remove(notificationKey: String, from deviceID: String) {
-        let identifier = identifier(for: notificationKey, deviceID: deviceID)
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
-        center.removeDeliveredNotifications(withIdentifiers: [identifier])
+        launch(arguments: ["--remove", Self.identifier(for: notificationKey, deviceID: deviceID)])
     }
 
-    nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
-    ) {
-        completionHandler([.banner, .list, .sound])
-    }
-
-    nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping @Sendable () -> Void
-    ) {
-        let userInfo = response.notification.request.content.userInfo
-        if let deviceID = userInfo["deviceID"] as? String,
-           let appPackage = userInfo["appPackage"] as? String,
-           !appPackage.isEmpty {
-            let appName = userInfo["appName"] as? String
-            Task { @MainActor in
-                MacNotificationDelivery.shared.onNotificationClick?(deviceID, appPackage, appName)
+    private func launch(arguments: [String]) {
+        guard let helper = Self.helperURL() else { return }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.arguments = arguments
+        configuration.activates = false
+        configuration.addsToRecentItems = false
+        configuration.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: helper, configuration: configuration) { _, error in
+            if let error {
+                Self.log.error("Sefirah Phone helper failed: \(error.localizedDescription, privacy: .public)")
             }
         }
-        completionHandler()
     }
 
-    private func identifier(for notificationKey: String, deviceID: String) -> String {
+    private static func helperURL() -> URL? {
+        let url = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Library/Helpers/Sefirah Phone.app", isDirectory: true)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private static func identifier(for notificationKey: String, deviceID: String) -> String {
         "android-notification:\(deviceID):\(notificationKey)"
     }
 }

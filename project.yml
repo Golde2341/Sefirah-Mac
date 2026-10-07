@@ -82,6 +82,25 @@ targets:
           fi
     dependencies:
       - target: SefirahCore
+      # Build-order only: the helper is copied into the app by the script below.
+      - target: SefirahNotifications
+        link: false
+        embed: false
+    postBuildScripts:
+      - name: Embed Sefirah Phone helper
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          SRC="$BUILT_PRODUCTS_DIR/Sefirah Phone.app"
+          DEST="$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/Helpers"
+          mkdir -p "$DEST"
+          rm -rf "$DEST/Sefirah Phone.app"
+          if [ -d "$SRC" ]; then
+            ditto "$SRC" "$DEST/Sefirah Phone.app"
+          else
+            echo "warning: helper app not built at $SRC" >&2
+          fi
     info:
       path: Sefirah/Info.plist
       properties:
@@ -95,6 +114,7 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSPrincipalClass: NSApplication
         NSLocalNetworkUsageDescription: Sefirah discovers and connects to your Android phone on the local network.
+        NSAppleEventsUsageDescription: Sefirah reads and controls media playing on your Mac from your paired Android device.
         NSBonjourServices:
           - _sefirah._udp
         CFBundleURLTypes:
@@ -105,9 +125,48 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.madeye.sefirah.mac
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Icon Composer bundle (Sefirah.icon). xcodegen can't model `.icon` folders, so after
+        # `xcodegen generate` re-add Sefirah.icon to this target's Resources phase by hand
+        # (file type folder.iconcomposer.icon) and keep INCLUDE_ALL_APPICON_ASSETS = NO.
+        # Never add an AppIcon.appiconset next to it — Xcode 27's icon export fails when both exist.
+        ASSETCATALOG_COMPILER_APPICON_NAME: Sefirah
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         COMBINE_HIDPI_IMAGES: YES
+  SefirahNotifications:
+    type: application
+    platform: macOS
+    sources:
+      - SefirahNotifications
+    info:
+      path: SefirahNotifications/Info.plist
+      properties:
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleDisplayName: Sefirah Phone
+        CFBundleName: Sefirah Phone
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        LSApplicationCategoryType: public.app-category.utilities
+        LSUIElement: true
+        NSPrincipalClass: NSApplication
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.madeye.sefirah.phone
+        PRODUCT_NAME: Sefirah Phone
+        # Icon Composer bundle (SefirahPhone.icon at the repo root). xcodegen can't model `.icon`
+        # folders, so after `xcodegen generate` re-add SefirahPhone.icon to this target's Resources
+        # phase by hand (file type folder.iconcomposer.icon) and keep INCLUDE_ALL_APPICON_ASSETS = NO.
+        # Never add an AppIcon.appiconset next to it — Xcode 27's icon export fails when both exist.
+        ASSETCATALOG_COMPILER_APPICON_NAME: SefirahPhone
+    postBuildScripts:
+      # macOS notification/tray icon slots fall back to the legacy .icns for this nested helper and
+      # expose its transparent margins as a light "well" (a thick gray outline). The Icon Composer
+      # export is inset by design, so scripts/fullbleed-legacy-icon.sh swaps in an edge-to-edge
+      # render before the target is signed (the modern `.icon` asset is untouched).
+      - name: Full-bleed legacy icon
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
+        script: /bin/bash "$SRCROOT/scripts/fullbleed-legacy-icon.sh"
   SefirahCoreTests:
     type: bundle.unit-test
     platform: macOS
@@ -125,6 +184,7 @@ schemes:
       targets:
         Sefirah: all
         SefirahCore: all
+        SefirahNotifications: all
         SefirahCoreTests: [test]
     test:
       targets:

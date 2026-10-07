@@ -193,35 +193,6 @@ final class AppModel: PairingDecider {
         selectedDeviceID = paired.first?.id
         refreshDevice()
 
-        macNotifications.onNotificationClick = { [weak self] deviceID, appPackage, appName in
-            guard let self, self.general.openAppOnNotificationClick else { return }
-
-            if self.general.mirrorBackend == .native {
-                // The native mirror renders in the main window's Mirror tab, so it must come forward.
-                self.showMainWindow = true
-                NSApp.setActivationPolicy(.regular)
-                NSApp.activate(ignoringOtherApps: true)
-                if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }) {
-                    window.makeKeyAndOrderFront(nil)
-                }
-            } else {
-                // External scrcpy opens its own window. Tapping the banner activates Sefirah,
-                // which can raise the main window; dismiss it and return to menu-bar mode so
-                // the tap shows scrcpy only.
-                self.dismissMainWindow()
-                Task { [weak self] in
-                    try? await Task.sleep(nanoseconds: 400_000_000)
-                    self?.dismissMainWindow()
-                }
-            }
-
-            if self.selectedDeviceID != deviceID {
-                self.selectedDeviceID = deviceID
-                self.refreshDevice()
-            }
-            self.startMirror(package: appPackage, appName: appName)
-        }
-
         let runner = scrcpyRunner
         terminateObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
@@ -916,9 +887,49 @@ final class AppModel: PairingDecider {
            let address = payload.addresses.first
         {
             session?.connect(deviceId: payload.deviceId, host: address, port: payload.port)
+        } else if url.host == "notification" {
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            guard let deviceID = items.first(where: { $0.name == "device" })?.value,
+                  let package = items.first(where: { $0.name == "package" })?.value, !package.isEmpty
+            else { return }
+            openNotificationApp(
+                deviceID: deviceID,
+                appPackage: package,
+                appName: items.first(where: { $0.name == "name" })?.value
+            )
         } else if let package = url.host, !package.isEmpty {
             startMirror(package: package)
         }
+    }
+
+    /// Opens a mirrored notification's app on the phone; the URL is sent by the `Sefirah Phone`
+    /// helper when one of its notifications is clicked.
+    private func openNotificationApp(deviceID: String, appPackage: String, appName: String?) {
+        guard general.openAppOnNotificationClick else { return }
+
+        if general.mirrorBackend == .native {
+            // The native mirror renders in the main window's Mirror tab, so it must come forward.
+            showMainWindow = true
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }) {
+                window.makeKeyAndOrderFront(nil)
+            }
+        } else {
+            // External scrcpy opens its own window. The URL activation can raise the main window;
+            // dismiss it and return to menu-bar mode so the notification tap shows scrcpy only.
+            dismissMainWindow()
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                self?.dismissMainWindow()
+            }
+        }
+
+        if selectedDeviceID != deviceID {
+            selectedDeviceID = deviceID
+            refreshDevice()
+        }
+        startMirror(package: appPackage, appName: appName)
     }
 
     private func handle(_ event: SessionEvent) {

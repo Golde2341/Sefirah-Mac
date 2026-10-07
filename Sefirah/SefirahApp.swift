@@ -55,18 +55,6 @@ struct SefirahApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let notificationDelivery = MacNotificationDelivery.shared
-
-    func applicationWillFinishLaunching(_ notification: Notification) {
-        notificationDelivery.configure()
-    }
-
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        Task {
-            await notificationDelivery.requestAuthorizationIfNeeded()
-        }
-    }
-
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
