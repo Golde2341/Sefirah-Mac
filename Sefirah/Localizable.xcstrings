@@ -27,7 +27,7 @@
     "%lld" : {
 
     },
-    "%lld adb shell command(s) run before the server is pushed." : {
+    "%lld adb shell command(s) run before mirroring starts." : {
 
     },
     "%lld of %lld selected" : {

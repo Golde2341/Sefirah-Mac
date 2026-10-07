@@ -130,6 +130,8 @@
 		F0E0910BACE04AF667B10678 /* BundledTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC4EB642815C91ADAC6BA21 /* BundledTools.swift */; };
 		F136ED29B10A6445FFF09E01 /* SocketPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1959E07C06DF0EFD7AD59282 /* SocketPayloads.swift */; };
 		F338F29F28F713D2EC2B0323 /* AdbClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 385070B2D6A0C8252C5EA338 /* AdbClientTests.swift */; };
+		6A237FAF488743EFA15D4868 /* UnlockCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF71A1CB27C4DC0A72D8F6D /* UnlockCommands.swift */; };
+		282F3ED12B9949AA899360D0 /* UnlockCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5270CCAE2194EF1861E534E /* UnlockCommandsTests.swift */; };
 		F4DA140B69750974746BA5C2 /* AdbOutputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F64EA04F107A8687824FD981 /* AdbOutputTests.swift */; };
 		F6124B5C951B139FCC2E978F /* CertificateStashTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA41226ECD54AE23C644827 /* CertificateStashTests.swift */; };
 		F6DA2F65B23A9273770AFD9F /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37E48B68646D10D5EF05CC0 /* AudioPlayer.swift */; };
@@ -235,6 +237,8 @@
 		33EF659D10482974887D9984 /* MirrorDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorDiagnostics.swift; sourceTree = "<group>"; };
 		354B496FD8B66BBAAAEB9C3A /* FixtureBytes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureBytes.swift; sourceTree = "<group>"; };
 		385070B2D6A0C8252C5EA338 /* AdbClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdbClientTests.swift; sourceTree = "<group>"; };
+		5BF71A1CB27C4DC0A72D8F6D /* UnlockCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCommands.swift; sourceTree = "<group>"; };
+		D5270CCAE2194EF1861E534E /* UnlockCommandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCommandsTests.swift; sourceTree = "<group>"; };
 		3A0BD5025BF8D704EC788848 /* SocketMessageGoldenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocketMessageGoldenTests.swift; sourceTree = "<group>"; };
 		3C492FA52556B049CFE8F8D1 /* QrCodeImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QrCodeImage.swift; sourceTree = "<group>"; };
 		3E11BC7AF9F7381E2DC66BA2 /* BundledToolsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundledToolsTests.swift; sourceTree = "<group>"; };
@@ -409,6 +413,7 @@
 				94A91A2ECCB5A5FA3DA83EFA /* SettingsStoreTests.swift */,
 				3A0BD5025BF8D704EC788848 /* SocketMessageGoldenTests.swift */,
 				FE99E5DD8CF82541D0D12A56 /* UDPDiscoveryTests.swift */,
+				D5270CCAE2194EF1861E534E /* UnlockCommandsTests.swift */,
 				F2437F45C00BE93CE398AD10 /* VerificationCodeTests.swift */,
 				9D674BE8A539B97B159FCA5D /* Native */,
 			);
@@ -458,6 +463,7 @@
 				83DBBF0D9C8C172D1057C53A /* ScrcpyDiagnostics.swift */,
 				4C0D99624A3B22801E20066E /* ScrcpyLaunchPlan.swift */,
 				13A4EDC62064E8C547890596 /* ScrcpyProcessRunner.swift */,
+				5BF71A1CB27C4DC0A72D8F6D /* UnlockCommands.swift */,
 				C813FF7CE27792B6BB67B494 /* Native */,
 			);
 			path = Mirroring;
@@ -926,6 +932,7 @@
 				51483DF2CB6F9421047E28F4 /* SettingsStoreTests.swift in Sources */,
 				58FD84EE6F49E826853192A8 /* SocketMessageGoldenTests.swift in Sources */,
 				90378A5E11C83C9418507113 /* UDPDiscoveryTests.swift in Sources */,
+				282F3ED12B9949AA899360D0 /* UnlockCommandsTests.swift in Sources */,
 				F9FFB211445B50549B2E98F1 /* VerificationCodeTests.swift in Sources */,
 				DC92DC6BC8045072D1508408 /* VideoCodecTests.swift in Sources */,
 			);
@@ -990,6 +997,7 @@
 				AA2021F4BB973490F6C4E8F8 /* SupportingModels.swift in Sources */,
 				C392691D6FAEA4C00017250E /* TLSFactory.swift in Sources */,
 				3FCE492F85C5C5C0F59A0076 /* UDPDiscovery.swift in Sources */,
+				6A237FAF488743EFA15D4868 /* UnlockCommands.swift in Sources */,
 				77B7466A061A8475BD914248 /* VerificationCode.swift in Sources */,
 				032770CDD45892FB707B8C84 /* VideoFormat.swift in Sources */,
 				EDDF3E3E1E4A108B6095D068 /* VideoFrameSink.swift in Sources */,

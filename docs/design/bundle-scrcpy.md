@@ -22,7 +22,7 @@ This document merges the two candidates. Where they disagreed, I ran the mechani
 **Non-goals**
 - Native in-app mirroring view (Option B) — see Future work.
 - App Sandbox / Mac App Store — spawning adb/scrcpy and USB access preclude it; unchanged from today.
-- Per-app window icons (`SCRCPY_ICON_PATH`), unlock-before-launch commands, video/audio codec pickers — legacy parity items deferred.
+- Per-app window icons (`SCRCPY_ICON_PATH`), video/audio codec pickers — legacy parity items deferred.
 - PGP verification of `SHA256SUMS.txt.asc` — pinned sha256 is sufficient and avoids a `gpg` dependency.
 
 ## Background (current state)

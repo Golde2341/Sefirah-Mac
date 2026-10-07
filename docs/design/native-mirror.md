@@ -541,7 +541,9 @@ All three stages are implemented on `feature/native-mirror`. Stage 3 added:
   banner. Target latency = `DeviceSettings.audioBuffer` (default 50 ms).
 - `MirrorEvent.audioCodec`, `MirrorStage.unlock`, `MirrorSessionConfig.unlockCommands/unlockTimeout`.
 - Unlock hook: when `unlockDeviceBeforeLaunch`, each `unlockCommands` entry runs as one `adb -s S shell "<command>"`
-  before the push (5 s each, `delayMs` honoured); failures are warnings, not fatal. **Deviation:** the legacy app
+  before the push (5 s each, `delayMs` honoured); failures are warnings, not fatal. The shared `UnlockCommandRunner`
+  is used by both backends — the external scrcpy window runs the same commands (via `-s S` when a serial was resolved,
+  otherwise adb picks the single device) just before the scrcpy process spawns. **Deviation:** the legacy app
   prompts for a password and substitutes `%pwd%` (`unlockTimeout` is its password-cache TTL, not a command timeout);
   the Mac port has no prompt yet, so `%pwd%` commands are skipped with a warning and `unlockTimeout` is unused.
 - Settings: `GeneralSettings.mirrorFallbackToExternal` (default false; `decodeIfPresent`). `AppModel` opens the

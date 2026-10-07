@@ -69,7 +69,7 @@ struct MirrorSettingsView: View {
             Toggle("Flexible display (resize with the window)", isOn: bind(id, \.flexDisplay))
             Toggle("Run unlock commands before launching", isOn: bind(id, \.unlockDeviceBeforeLaunch))
             let commands = model.deviceSettings(for: id).unlockCommands.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }
-            Text(commands.isEmpty ? "No unlock commands configured." : "\(commands.count) adb shell command(s) run before the server is pushed.")
+            Text(commands.isEmpty ? "No unlock commands configured." : "\(commands.count) adb shell command(s) run before mirroring starts.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         DisclosureGroup("Custom server options") {

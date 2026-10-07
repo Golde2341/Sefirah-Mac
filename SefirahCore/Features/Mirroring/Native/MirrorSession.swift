@@ -155,24 +155,14 @@ public actor MirrorSession {
 
         if !config.unlockCommands.isEmpty {
             setState(.preparing(.unlock))
-            for entry in config.unlockCommands {
-                try Task.checkCancellation()
-                let command = entry.command.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !command.isEmpty else { continue }
-                if command.contains("%pwd%") {
-                    events(.warning("Unlock command with %pwd% skipped (password prompt not supported yet)"))
-                    continue
-                }
-                do {
-                    let result = try await launcher.shell(serial: serial, command, timeout: config.unlockTimeout)
-                    if result.exitCode != 0 {
-                        events(.warning("Unlock command \"\(command)\" exited \(result.exitCode)"))
-                    }
-                } catch {
-                    events(.warning("Unlock command \"\(command)\" failed: \(error)"))
-                }
-                if entry.delayMs > 0 { try await Task.sleep(nanoseconds: UInt64(entry.delayMs) * 1_000_000) }
-            }
+            let events = self.events
+            let unlockCommands = config.unlockCommands
+            let unlockTimeout = config.unlockTimeout
+            try await UnlockCommandRunner.run(
+                commands: unlockCommands,
+                warn: { events(.warning($0)) },
+                shell: { [launcher] in try await launcher.shell(serial: serial, $0, timeout: unlockTimeout) }
+            )
         }
 
         setState(.preparing(.push))

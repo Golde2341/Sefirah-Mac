@@ -1,7 +1,10 @@
 import AppKit
 import Foundation
+import OSLog
 import SefirahCore
 import SwiftUI
+
+private let mirrorLaunchLog = Logger(subsystem: "io.github.madeye.sefirah.mac", category: "scrcpy")
 
 @MainActor
 @Observable
@@ -340,9 +343,9 @@ final class AppModel: PairingDecider {
         }
 
         // Optional Wi-Fi connect + serial selection.
+        let adbClient = base.adb.map { AdbClient(adb: $0, environment: base.environment, runner: commandRunner) }
         var serial: String?
-        if let adb = base.adb {
-            let client = AdbClient(adb: adb, environment: base.environment, runner: commandRunner)
+        if let client = adbClient {
             if deviceSettings.adbTcpipModeEnabled {
                 do {
                     serial = try await client.tryConnectTcp(host: device.address, model: device.model)
@@ -362,6 +365,29 @@ final class AppModel: PairingDecider {
                     devices: devices, peerModel: device.model, preference: deviceSettings.scrcpyDevicePreference
                 )
             } // adb listing failures are non-fatal here; scrcpy reports its own error which we surface on exit.
+        }
+
+        // Unlock-before-launch (parity with MirrorSession.run): wake/unlock the phone before scrcpy
+        // spawns. Best effort — a failing command is logged and the launch continues, and launcher
+        // arguments (window, size) are unchanged.
+        if deviceSettings.unlockDeviceBeforeLaunch {
+            if let client = adbClient {
+                let lockedSerial = serial
+                do {
+                    try await UnlockCommandRunner.run(
+                        commands: deviceSettings.unlockCommands,
+                        warn: { mirrorLaunchLog.warning("\($0, privacy: .public)") },
+                        shell: { command in
+                            if let lockedSerial { try await client.shell(serial: lockedSerial, [command]) }
+                            else { try await client.shell([command]) }
+                        }
+                    )
+                } catch {
+                    return // task cancelled while unlocking; do not spawn scrcpy
+                }
+            } else {
+                mirrorLaunchLog.warning("Unlock commands skipped: no adb tool is available to the external backend")
+            }
         }
 
         let plan: ScrcpyLaunchPlan

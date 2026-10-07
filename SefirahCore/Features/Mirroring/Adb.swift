@@ -275,6 +275,12 @@ extension AdbClient {
         try await runner.run(adb, ["-s", serial, "shell"] + command, environment: environment, timeout: timeout)
     }
 
+    /// `adb shell <command…>` without `-s`; adb picks the single attached device, exactly the rule
+    /// scrcpy itself applies when it launches without `--serial`.
+    public func shell(_ command: [String], timeout: TimeInterval = 5) async throws -> CommandResult {
+        try await runner.run(adb, ["shell"] + command, environment: environment, timeout: timeout)
+    }
+
     private static func trim(_ s: String) -> String { s.trimmingCharacters(in: .whitespacesAndNewlines) }
 }
 
