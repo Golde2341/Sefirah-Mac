@@ -28,10 +28,19 @@ struct RootView: View {
             )
         }
         .alert(item: $model.toolFailure) { failure in
-            Alert(
-                title: Text(failure.title),
-                message: Text(failure.detail.map { "\(failure.message)\n\n\($0)" } ?? failure.message)
-            )
+            if let retryAction = failure.retryAction {
+                return Alert(
+                    title: Text(failure.title),
+                    message: Text(failure.detail.map { "\(failure.message)\n\n\($0)" } ?? failure.message),
+                    primaryButton: .default(Text("Retry"), action: retryAction),
+                    secondaryButton: .cancel(Text("Dismiss"))
+                )
+            } else {
+                return Alert(
+                    title: Text(failure.title),
+                    message: Text(failure.detail.map { "\(failure.message)\n\n\($0)" } ?? failure.message)
+                )
+            }
         }
         .onChange(of: model.incomingCall) { _, call in
             if call != nil {

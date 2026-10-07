@@ -49,6 +49,7 @@ final class AppModel: PairingDecider {
     private let nativeTools = NativeTools.locate()
     private let scrcpyRunner: any ScrcpyRunning = ScrcpyProcessRunner()
     private let commandRunner: any CommandRunning = ProcessCommandRunner()
+    private let macNotifications = MacNotificationDelivery.shared
     private var terminateObserver: NSObjectProtocol?
 
     init() {
@@ -136,6 +137,25 @@ final class AppModel: PairingDecider {
         }) ?? []
         selectedDeviceID = paired.first?.id
         refreshDevice()
+
+        macNotifications.onNotificationClick = { [weak self] deviceID, appPackage, appName in
+            guard let self else { return }
+            if self.general.openAppOnNotificationClick {
+                if self.general.mirrorBackend == .native {
+                    self.showMainWindow = true
+                    NSApp.setActivationPolicy(.regular)
+                    NSApp.activate(ignoringOtherApps: true)
+                    if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }) {
+                        window.makeKeyAndOrderFront(nil)
+                    }
+                }
+                if self.selectedDeviceID != deviceID {
+                    self.selectedDeviceID = deviceID
+                    self.refreshDevice()
+                }
+                self.startMirror(package: appPackage, appName: appName)
+            }
+        }
 
         let runner = scrcpyRunner
         terminateObserver = NotificationCenter.default.addObserver(
@@ -311,7 +331,10 @@ final class AppModel: PairingDecider {
             toolFailure = ToolFailure(
                 title: "Screen mirroring unavailable",
                 message: error.localizedDescription,
-                detail: "Bundled scrcpy: \(bundledScrcpyVersion ?? "missing")"
+                detail: "Bundled scrcpy: \(bundledScrcpyVersion ?? "missing")",
+                retryAction: { [weak self] in
+                    self?.launchScrcpy(package: package, appName: appName)
+                }
             )
             return
         }
@@ -327,7 +350,10 @@ final class AppModel: PairingDecider {
                     toolFailure = ToolFailure(
                         title: "Could not reach \(device.name) over ADB",
                         message: error.localizedDescription,
-                        detail: "Enable Wireless debugging, or connect once over USB so Sefirah can switch the phone to TCP/IP mode."
+                        detail: "Enable Wireless debugging, or connect once over USB so Sefirah can switch the phone to TCP/IP mode.",
+                        retryAction: { [weak self] in
+                            self?.launchScrcpy(package: package, appName: appName)
+                        }
                     )
                     return
                 }
@@ -342,15 +368,22 @@ final class AppModel: PairingDecider {
         if let serial, let withSerial = try? makePlan(serial) { plan = withSerial } else { plan = base }
         do {
             try scrcpyRunner.launch(plan, key: key) { [weak self] exit in
-                Task { @MainActor in self?.handleScrcpyExit(exit, key: key, plan: plan) }
+                Task { @MainActor in self?.handleScrcpyExit(exit, key: key, plan: plan, package: package, appName: appName) }
             }
             mirroringKeys.insert(key)
         } catch {
-            toolFailure = ToolFailure(title: "Could not start scrcpy", message: error.localizedDescription, detail: plan.executable.path)
+            toolFailure = ToolFailure(
+                title: "Could not start scrcpy",
+                message: error.localizedDescription,
+                detail: plan.executable.path,
+                retryAction: { [weak self] in
+                    self?.launchScrcpy(package: package, appName: appName)
+                }
+            )
         }
     }
 
-    private func handleScrcpyExit(_ exit: ScrcpyExit, key: String, plan: ScrcpyLaunchPlan) {
+    private func handleScrcpyExit(_ exit: ScrcpyExit, key: String, plan: ScrcpyLaunchPlan, package: String?, appName: String?) {
         // A relaunch with the same key terminates the previous process; the runner already
         // tracks the replacement, so this exit belongs to the old one and must not clear the key.
         guard !scrcpyRunner.runningKeys.contains(key) else { return }
@@ -362,7 +395,10 @@ final class AppModel: PairingDecider {
             toolFailure = ToolFailure(
                 title: "scrcpy exited (code \(code))",
                 message: ScrcpyDiagnostics.hint(exit: exit) ?? "scrcpy reported an error.",
-                detail: stderr.isEmpty ? plan.executable.path : stderr
+                detail: stderr.isEmpty ? plan.executable.path : stderr,
+                retryAction: { [weak self] in
+                    self?.launchScrcpy(package: package, appName: appName)
+                }
             )
         }
     }
@@ -377,8 +413,75 @@ final class AppModel: PairingDecider {
 
     // MARK: - Native mirror
 
+    var sortedApps: [ApplicationRecord] {
+        let recentPositions = Dictionary(
+            uniqueKeysWithValues: general.recentlyOpenedAppKeys.enumerated().map { ($0.element, $0.offset) }
+        )
+
+        return apps.sorted { lhs, rhs in
+            if lhs.pinned != rhs.pinned {
+                return lhs.pinned
+            }
+
+            let lhsRecentPosition = recentPositions[lhs.appKey]
+            let rhsRecentPosition = recentPositions[rhs.appKey]
+            if let lhsRecentPosition, let rhsRecentPosition, lhsRecentPosition != rhsRecentPosition {
+                return lhsRecentPosition < rhsRecentPosition
+            }
+            if lhsRecentPosition != nil {
+                return true
+            }
+            if rhsRecentPosition != nil {
+                return false
+            }
+            return lhs.appName.localizedStandardCompare(rhs.appName) == .orderedAscending
+        }
+    }
+
+    var recentlyOpenedApps: [ApplicationRecord] {
+        general.recentlyOpenedAppKeys
+            .compactMap { key in apps.first { $0.appKey == key } }
+            .prefix(8)
+            .map { $0 }
+    }
+
+    func togglePinnedApp(_ app: ApplicationRecord) {
+        let isPinned = !app.pinned
+        guard (try? hub.setAppPinned(
+            deviceId: app.deviceId,
+            packageName: app.packageName,
+            isPinned: isPinned
+        )) != nil else { return }
+
+        if let index = apps.firstIndex(where: { $0.appKey == app.appKey }) {
+            apps[index].pinned = isPinned
+        }
+    }
+
+    func setAppNotificationsEnabled(_ app: ApplicationRecord, isEnabled: Bool) {
+        guard (try? hub.setAppNotificationsEnabled(
+            deviceId: app.deviceId,
+            packageName: app.packageName,
+            isEnabled: isEnabled
+        )) != nil else { return }
+
+        if let index = apps.firstIndex(where: { $0.appKey == app.appKey }) {
+            apps[index].filter = isEnabled ? .toastFeed : .disabled
+        }
+    }
+
+    func setAllAppNotificationsEnabled(_ isEnabled: Bool) {
+        for app in apps {
+            setAppNotificationsEnabled(app, isEnabled: isEnabled)
+        }
+    }
+
     /// Dispatches to the native session or the external scrcpy window per `general.mirrorBackend`.
     func startMirror(package: String? = nil, appName: String? = nil) {
+        if let package {
+            recordRecentlyOpenedApp(packageName: package)
+        }
+
         if general.mirrorBackend == .external {
             launchScrcpy(package: package, appName: appName)
             return
@@ -388,6 +491,15 @@ final class AppModel: PairingDecider {
 
     func mirrorController(for key: String) -> MirrorController? {
         mirrors[key]
+    }
+
+    private func recordRecentlyOpenedApp(packageName: String) {
+        guard let app = apps.first(where: { $0.packageName == packageName }) else { return }
+
+        general.recentlyOpenedAppKeys.removeAll { $0 == app.appKey }
+        general.recentlyOpenedAppKeys.insert(app.appKey, at: 0)
+        general.recentlyOpenedAppKeys = Array(general.recentlyOpenedAppKeys.prefix(8))
+        saveGeneral()
     }
 
     /// Key of the session shown in the Mirror tab (set when a session starts or the user picks one).
@@ -701,6 +813,7 @@ final class AppModel: PairingDecider {
         case .inboundMessage(let deviceId, let message):
             let result = try? hub.handle(deviceId: deviceId, message)
             apply(result?.effects ?? [], deviceId: deviceId)
+            forwardNotification(message, from: deviceId)
             if deviceId == selectedDeviceID {
                 refreshDevice()
             }
@@ -738,6 +851,16 @@ final class AppModel: PairingDecider {
             case .executeAction(let execution):
                 execute(execution)
             }
+        }
+    }
+
+    private func forwardNotification(_ message: SocketMessage, from deviceID: String) {
+        guard case .notificationInfo(let notification) = message else { return }
+
+        if notification.infoType == .removed {
+            macNotifications.remove(notificationKey: notification.notificationKey, from: deviceID)
+        } else if let appPackage = notification.appPackage, hub.isNotificationEnabled(deviceId: deviceID, packageName: appPackage) {
+            macNotifications.deliver(notification, from: deviceID)
         }
     }
 
@@ -787,4 +910,9 @@ struct ToolFailure: Identifiable, Equatable {
     var title: String
     var message: String
     var detail: String?
+    var retryAction: (() -> Void)?
+
+    static func == (lhs: ToolFailure, rhs: ToolFailure) -> Bool {
+        lhs.id == rhs.id
+    }
 }

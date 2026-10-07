@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct MenuBarView: View {
@@ -16,7 +17,23 @@ struct MenuBarView: View {
                 Text(note.title ?? note.appName).lineLimit(1)
             }
             Divider()
+            Menu {
+                if model.recentlyOpenedApps.isEmpty {
+                    Text("No recently opened apps")
+                } else {
+                    ForEach(model.recentlyOpenedApps, id: \.appKey) { app in
+                        Button(app.appName) {
+                            model.startMirror(package: app.packageName, appName: app.appName)
+                        }
+                    }
+                }
+            } label: {
+                Label("Recently Opened Apps", systemImage: "clock")
+            }
+            .disabled(model.recentlyOpenedApps.isEmpty)
+
             Button("Show Window") {
+                NSApp.setActivationPolicy(.regular)
                 model.showMainWindow = true
                 openWindow(id: "main")
                 NSApp.activate(ignoringOtherApps: true)

@@ -15,7 +15,17 @@ struct NotificationFeedView: View {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(model.notifications) { note in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(note.appName).font(.caption).foregroundStyle(.secondary)
+                            HStack {
+                                Text(note.appName).font(.caption).foregroundStyle(.secondary)
+                                Spacer()
+                                if model.general.openAppOnNotificationClick, !note.appPackage.isEmpty {
+                                    Button("Open App") {
+                                        model.startMirror(package: note.appPackage, appName: note.appName)
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .font(.caption)
+                                }
+                            }
                             Text(note.title ?? "").font(.headline)
                             Text(note.text ?? "").foregroundStyle(.secondary)
                             HStack {
@@ -36,6 +46,12 @@ struct NotificationFeedView: View {
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if model.general.openAppOnNotificationClick, !note.appPackage.isEmpty {
+                                model.startMirror(package: note.appPackage, appName: note.appName)
+                            }
+                        }
                     }
                 }
             }

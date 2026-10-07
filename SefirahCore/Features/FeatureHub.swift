@@ -290,6 +290,36 @@ public final class FeatureHub: @unchecked Sendable {
         }
     }
 
+    public func setAppPinned(deviceId: String, packageName: String, isPinned: Bool) throws {
+        let appKey = "\(deviceId):\(packageName)"
+        try database.dbQueue.write { db in
+            if var record = try ApplicationRecord.fetchOne(db, key: appKey) {
+                record.pinned = isPinned
+                try record.update(db)
+            }
+        }
+    }
+
+    public func setAppNotificationsEnabled(deviceId: String, packageName: String, isEnabled: Bool) throws {
+        let appKey = "\(deviceId):\(packageName)"
+        let filter: NotificationFilter = isEnabled ? .toastFeed : .disabled
+        try database.dbQueue.write { db in
+            if var record = try ApplicationRecord.fetchOne(db, key: appKey) {
+                record.filter = filter
+                try record.update(db)
+            }
+        }
+    }
+
+    public func isNotificationEnabled(deviceId: String, packageName: String) -> Bool {
+        let appKey = "\(deviceId):\(packageName)"
+        let record = try? database.dbQueue.read { db in
+            try ApplicationRecord.fetchOne(db, key: appKey)
+        }
+        guard let record else { return true }
+        return record.filter != .disabled
+    }
+
     public func liveState(deviceId: String) -> DeviceLiveState {
         lock.lock()
         defer { lock.unlock() }
@@ -403,13 +433,17 @@ public final class FeatureHub: @unchecked Sendable {
     }
 
     private func persistApp(deviceId: String, _ app: ApplicationInfo) throws {
-        let record = ApplicationRecord(
-            appKey: "\(deviceId):\(app.packageName)",
-            deviceId: deviceId,
-            packageName: app.packageName,
-            appName: app.appName
-        )
+        let appKey = "\(deviceId):\(app.packageName)"
         try database.dbQueue.write { db in
+            let existing = try ApplicationRecord.fetchOne(db, key: appKey)
+            let record = ApplicationRecord(
+                appKey: appKey,
+                deviceId: deviceId,
+                packageName: app.packageName,
+                appName: app.appName,
+                pinned: existing?.pinned ?? false,
+                filter: existing?.filter ?? .toastFeed
+            )
             try record.save(db)
         }
     }

@@ -13,6 +13,9 @@ struct SefirahApp: App {
                 .environment(model)
                 .frame(minWidth: 960, minHeight: 600)
                 .onOpenURL { model.handleURL($0) }
+                .onDisappear {
+                    NSApp.setActivationPolicy(.accessory)
+                }
         }
         .defaultSize(width: 980, height: 640)
         .commands {
@@ -50,13 +53,27 @@ struct SefirahApp: App {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let notificationDelivery = MacNotificationDelivery.shared
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        notificationDelivery.configure()
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        Task {
+            await notificationDelivery.requestAuthorizationIfNeeded()
+        }
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
+            NSApp.setActivationPolicy(.regular)
             NSApp.windows.first { $0.identifier?.rawValue == "main" }?.makeKeyAndOrderFront(nil)
         }
         return true

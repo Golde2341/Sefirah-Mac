@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Bindable var model: AppModel
+    @State private var isShowingNotificationAppSelection = false
 
     var body: some View {
         Form {
@@ -22,6 +23,24 @@ struct SettingsView: View {
                 TextField("Device name", text: $model.general.localDeviceName)
                 TextField("Received files", text: $model.general.receivedFilesPath)
                 Button("Save") { model.saveGeneral() }
+            }
+            Section("Notifications") {
+                Toggle("Open app when clicking notification", isOn: $model.general.openAppOnNotificationClick)
+                    .onChange(of: model.general.openAppOnNotificationClick) {
+                        model.saveGeneral()
+                    }
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("App Notifications")
+                        Text("Configure which apps to show notifications for")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Configure Apps…") {
+                        isShowingNotificationAppSelection = true
+                    }
+                }
             }
             Section("Screen mirroring") {
                 LabeledContent("Bundled scrcpy", value: model.bundledScrcpyVersion.map { "v\($0)" } ?? "Not found — reinstall Sefirah")
@@ -87,6 +106,9 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+        .sheet(isPresented: $isShowingNotificationAppSelection) {
+            NotificationAppSelectionView(model: model)
+        }
     }
 
     private func choosePath(_ apply: (String) -> Void) {

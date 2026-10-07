@@ -1,36 +1,628 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Welcome to Sefirah" : {},
-    "Get Started" : {},
-    "Scan QR Code" : {},
-    "Skip" : {},
-    "Connect" : {},
-    "Accept" : {},
-    "Decline" : {},
-    "Connection request" : {},
-    "Calls" : {},
-    "Messages" : {},
-    "Apps" : {},
-    "Settings" : {},
-    "Notifications" : {},
-    "Find phone" : {},
-    "Show Window" : {},
-    "Quit Sefirah" : {},
-    "Incoming call" : {},
-    "UDP 5149, TLS 5150–5169" : {},
-    "Silent" : {},
-    "Vibrate" : {},
-    "Ring" : {},
-    "Volume" : {},
-    "Media" : {},
-    "Find" : {},
-    "Stop sound" : {},
-    "DND" : {},
-    "DND On" : {},
-    "Clipboard" : {},
-    "Media volume" : {},
-    "Stop find phone" : {}
+    "%@  %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@  %2$@"
+          }
+        }
+      }
+    },
+    "%@ wants to pair with this Mac. Confirm the code matches on both devices." : {
+
+    },
+    "%@:%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@:%2$lld"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld adb shell command(s) run before the server is pushed." : {
+
+    },
+    "%lld of %lld selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld selected"
+          }
+        }
+      }
+    },
+    "%lld%%%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld%%%2$@"
+          }
+        }
+      }
+    },
+    "%llds" : {
+
+    },
+    "• Others: check that “USB debugging” stays enabled and that no MDM/security app restricts input injection." : {
+
+    },
+    "• Xiaomi / HyperOS: Developer options ▸ USB debugging (Security settings). A Xiaomi account and SIM may be required." : {
+
+    },
+    "AAC" : {
+
+    },
+    "About" : {
+
+    },
+    "Accept" : {
+
+    },
+    "Actions" : {
+
+    },
+    "Add Link, Power, or Run actions. They sync to the phone when connected." : {
+
+    },
+    "Advanced" : {
+
+    },
+    "Android app" : {
+
+    },
+    "Android companion for Mac" : {
+
+    },
+    "App launches (virtual display)" : {
+
+    },
+    "App Notifications" : {
+
+    },
+    "Apps" : {
+
+    },
+    "Audio" : {
+
+    },
+    "AV1" : {
+
+    },
+    "Available devices" : {
+
+    },
+    "Backend" : {
+
+    },
+    "Backend is set to external scrcpy; the stream opens in a separate window." : {
+
+    },
+    "Bit rate (e.g. 8M)" : {
+
+    },
+    "Bit rate (e.g. 128K)" : {
+
+    },
+    "Buffer: %lld ms" : {
+
+    },
+    "Bundled adb / scrcpy-server missing. Reinstall Sefirah or switch the backend in Settings." : {
+
+    },
+    "Bundled adb/scrcpy is missing. Reinstall Sefirah or set a custom scrcpy path in Settings." : {
+
+    },
+    "Bundled scrcpy" : {
+
+    },
+    "Calls" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "caps" : {
+
+    },
+    "CAPS" : {
+
+    },
+    "Choose…" : {
+
+    },
+    "Clipboard" : {
+
+    },
+    "Clipboard from phone: %@" : {
+
+    },
+    "Codec" : {
+
+    },
+    "Configure Apps…" : {
+
+    },
+    "Configure which apps to show notifications for" : {
+
+    },
+    "Connect" : {
+
+    },
+    "Connect over Wi-Fi (ADB TCP/IP)" : {
+
+    },
+    "Connect your Android phone to share clipboard, notifications, messages, and more." : {
+
+    },
+    "Connected" : {
+
+    },
+    "Connected phones sync their launcher apps here." : {
+
+    },
+    "Connection request" : {
+
+    },
+    "Copy log" : {
+
+    },
+    "Crop (width:height:x:y)" : {
+
+    },
+    "Custom adb path" : {
+
+    },
+    "Custom scrcpy path" : {
+
+    },
+    "Custom server options" : {
+
+    },
+    "Dark" : {
+
+    },
+    "Decline" : {
+
+    },
+    "Deselect All" : {
+
+    },
+    "Device" : {
+
+    },
+    "Device name" : {
+
+    },
+    "Devices" : {
+
+    },
+    "Disable video (audio only)" : {
+
+    },
+    "Disabled" : {
+
+    },
+    "Disconnected" : {
+
+    },
+    "Dismiss" : {
+
+    },
+    "Display id (0 = default)" : {
+
+    },
+    "DND" : {
+
+    },
+    "DND On" : {
+
+    },
+    "Done" : {
+
+    },
+    "External scrcpy window" : {
+
+    },
+    "Fall back to external scrcpy when the native mirror fails" : {
+
+    },
+    "Files" : {
+
+    },
+    "Find" : {
+
+    },
+    "Find phone" : {
+
+    },
+    "Flexible display (resize with the window)" : {
+
+    },
+    "Forward microphone instead of device audio" : {
+
+    },
+    "Forward mouse hover" : {
+
+    },
+    "General" : {
+
+    },
+    "Get Started" : {
+
+    },
+    "H.264" : {
+
+    },
+    "H.265" : {
+
+    },
+    "Incoming and missed calls from your phone appear here." : {
+
+    },
+    "Incoming call" : {
+
+    },
+    "Incoming Call" : {
+
+    },
+    "Input not working?" : {
+
+    },
+    "key=value pairs (e.g. stay_awake=true show_touches=true)" : {
+
+    },
+    "Launch" : {
+
+    },
+    "Launch an app…" : {
+
+    },
+    "Leave empty to use the bundled copies. A custom scrcpy uses its own scrcpy-server." : {
+
+    },
+    "Light" : {
+
+    },
+    "Listening on port %lld" : {
+
+    },
+    "Mac and phone" : {
+
+    },
+    "Mac only" : {
+
+    },
+    "Max frame rate: %@" : {
+
+    },
+    "Max size (px, empty = native)" : {
+
+    },
+    "Menu bar only" : {
+
+    },
+    "Message" : {
+
+    },
+    "Messages" : {
+
+    },
+    "Minimized" : {
+
+    },
+    "Mirror" : {
+
+    },
+    "Mirror %@" : {
+
+    },
+    "Mirror the phone screen" : {
+
+    },
+    "Mute Audio" : {
+
+    },
+    "Muted" : {
+
+    },
+    "Native (in-app)" : {
+
+    },
+    "Native mirror: scrcpy-server key=value options. External backend: scrcpy CLI flags." : {
+
+    },
+    "No active call" : {
+
+    },
+    "No apps" : {
+
+    },
+    "No apps found" : {
+
+    },
+    "No apps match \"%@\"." : {
+
+    },
+    "No audio" : {
+
+    },
+    "No call history" : {
+
+    },
+    "No conversations" : {
+
+    },
+    "No device" : {
+
+    },
+    "No matching apps" : {
+
+    },
+    "No notifications" : {
+
+    },
+    "No phone connected. Pair a device from Settings or complete onboarding." : {
+
+    },
+    "No recently opened apps" : {
+
+    },
+    "No unlock commands configured." : {
+
+    },
+    "Notification Apps" : {
+
+    },
+    "Notifications" : {
+
+    },
+    "On the phone, turn on Message sync for this Mac, grant SMS permission, then reconnect." : {
+
+    },
+    "Open App" : {
+
+    },
+    "Open app when clicking notification" : {
+
+    },
+    "Open apps on a virtual display" : {
+
+    },
+    "Open Sefirah on your phone and scan this code, or pick a discovered device." : {
+
+    },
+    "Opus" : {
+
+    },
+    "Output" : {
+
+    },
+    "Pair" : {
+
+    },
+    "Pair a phone to mirror its screen." : {
+
+    },
+    "Pairing, clipboard, and notifications are coming next." : {
+
+    },
+    "Paste Mac Clipboard to Phone" : {
+
+    },
+    "Phone only (no audio stream)" : {
+
+    },
+    "Phone screen is off" : {
+
+    },
+    "Physical keyboard (UHID)" : {
+
+    },
+    "Pin %@" : {
+
+    },
+    "Ports" : {
+
+    },
+    "QR unavailable" : {
+
+    },
+    "Quit Sefirah" : {
+
+    },
+    "Raw PCM" : {
+
+    },
+    "Received files" : {
+
+    },
+    "Recently Opened Apps" : {
+
+    },
+    "Refresh" : {
+
+    },
+    "Refresh the selected phone's app list, then try again." : {
+
+    },
+    "Reply" : {
+
+    },
+    "Restart ADB server" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Ring" : {
+
+    },
+    "Ringer" : {
+
+    },
+    "Rotate Device" : {
+
+    },
+    "Rotation angle: %lld°" : {
+
+    },
+    "Run" : {
+
+    },
+    "Run unlock commands before launching" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save paths" : {
+
+    },
+    "Scan QR Code" : {
+
+    },
+    "Screen mirroring" : {
+
+    },
+    "Search" : {
+
+    },
+    "Search apps" : {
+
+    },
+    "Section" : {
+
+    },
+    "Sefirah" : {
+
+    },
+    "Sefirah on GitHub" : {
+
+    },
+    "Select a conversation" : {
+
+    },
+    "Select a paired device to edit its mirroring options." : {
+
+    },
+    "Select All" : {
+
+    },
+    "Send" : {
+
+    },
+    "Session" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Show Window" : {
+
+    },
+    "Silent" : {
+
+    },
+    "Skip" : {
+
+    },
+    "Start mirroring" : {
+
+    },
+    "Start Mirroring" : {
+
+    },
+    "Startup" : {
+
+    },
+    "Stop" : {
+
+    },
+    "Stop All Mirrors" : {
+
+    },
+    "Stop every mirror session of this phone" : {
+
+    },
+    "Stop find phone" : {
+
+    },
+    "Stop sound" : {
+
+    },
+    "Sync clipboard automatically" : {
+
+    },
+    "System" : {
+
+    },
+    "The mirror keeps working read-only; toolbar keys, screen off and clipboard sync are unaffected." : {
+
+    },
+    "The phone reported that audio capture is unavailable (Android < 11, or the audio source is unsupported)." : {
+
+    },
+    "The stream continues; touch and keys still work." : {
+
+    },
+    "Theme" : {
+
+    },
+    "Third-party notices" : {
+
+    },
+    "Touches and keys are injected by scrcpy-server through ADB. Some phones block this until an extra developer option is enabled:" : {
+
+    },
+    "Turn phone screen off while mirroring" : {
+
+    },
+    "Unmute Audio" : {
+
+    },
+    "Unpin %@" : {
+
+    },
+    "Use external scrcpy" : {
+
+    },
+    "Verbose scrcpy-server logs" : {
+
+    },
+    "Version" : {
+
+    },
+    "Vibrate" : {
+
+    },
+    "Video" : {
+
+    },
+    "Virtual display size (WxH[/dpi], empty = phone size)" : {
+
+    },
+    "Volume" : {
+
+    },
+    "Waiting for devices on this network…" : {
+
+    },
+    "Welcome to Sefirah" : {
+
+    },
+    "Window" : {
+
+    }
   },
   "version" : "1.0"
 }
