@@ -25,28 +25,21 @@ enum MacMediaController {
     nonisolated private static let source = "sefirah.macos.media"
     private static var activePlayer: Player?
     private static var artworkCache: [String: String] = [:]
-    private static var lastTrackIdentifier: String?
 
+    /// Returns a full snapshot of the active player.
+    ///
+    /// The snapshot is always a `.playbackInfo` message: the phone replaces the whole session in
+    /// place, so a track change (position back to 0, new title/artwork) updates the existing
+    /// notification instead of tearing it down and re-adding it.
     static func playbackInfos() async -> [PlaybackInfo] {
         guard var snapshot = await Task.detached(priority: .utility, operation: {
             playbackMetadata()
         }).value else {
             activePlayer = nil
-            lastTrackIdentifier = nil
             return [fallbackPlaybackInfo()]
         }
 
         activePlayer = snapshot.player
-        let trackIdentifier = [
-            snapshot.info.appName ?? "",
-            snapshot.info.trackTitle ?? "",
-            snapshot.info.artist ?? "",
-            snapshot.artworkURL?.absoluteString ?? "",
-        ].joined(separator: "\u{1F}")
-        if let lastTrackIdentifier, lastTrackIdentifier != trackIdentifier {
-            snapshot.info.infoType = .playbackUpdate
-        }
-        lastTrackIdentifier = trackIdentifier
 
         if let artworkURL = snapshot.artworkURL {
             let key = artworkURL.absoluteString

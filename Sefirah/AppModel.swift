@@ -928,11 +928,15 @@ final class AppModel: PairingDecider {
             {
                 Task { [weak self] in
                     await MacMediaController.handle(action)
-                    if action.actionType == .next || action.actionType == .previous {
-                        self?.removeMacPlaybackSession(from: deviceId)
-                        try? await Task.sleep(nanoseconds: 800_000_000)
-                    }
                     await self?.publishMacPlaybackMetadata(to: [deviceId])
+                    if action.actionType == .next || action.actionType == .previous {
+                        // Players occasionally report the previous track for a moment after a
+                        // skip; take a second full snapshot so the phone lands on the new
+                        // track's 0:00 in place. Removing the session instead would cancel and
+                        // re-add the notification (flicker).
+                        try? await Task.sleep(nanoseconds: 800_000_000)
+                        await self?.publishMacPlaybackMetadata(to: [deviceId])
+                    }
                 }
             }
             let result = try? hub.handle(deviceId: deviceId, message)
@@ -962,16 +966,6 @@ final class AppModel: PairingDecider {
             }
             macPlaybackSources[deviceID] = sources
         }
-    }
-
-    private func removeMacPlaybackSession(from deviceID: String) {
-        for source in macPlaybackSources[deviceID] ?? [] {
-            session?.send(
-                to: deviceID,
-                .playbackInfo(PlaybackInfo(infoType: .removedSession, source: source, isPlaying: false))
-            )
-        }
-        macPlaybackSources[deviceID] = []
     }
 
     func refreshDevice() {
