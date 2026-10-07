@@ -48,17 +48,19 @@ final class MacNotificationDelivery {
 
     /// Writes the richest image the phone sent — the contact photo (`largeIcon`) when available,
     /// otherwise the app icon (`appIcon`) — to a temporary file for the helper to attach to the
-    /// notification, where it renders on the trailing side of the banner. Returns nil when there
-    /// is no usable image. The helper deletes the file after scheduling the notification.
+    /// notification, where it renders on the trailing side of the banner. The artwork is rendered
+    /// as an iOS-style squircle so icons look consistent across phones (whose launchers bake in
+    /// circles, rounded squares, etc.). Returns nil when there is no usable image. The helper
+    /// deletes the file after scheduling the notification.
     private static func writeAttachment(contactPhoto: String, appIcon: String?) -> String? {
         for candidate in [contactPhoto, appIcon ?? ""] where !candidate.isEmpty {
-            guard let image = NotificationAttachmentImage.decode(candidate) else {
+            guard let png = NotificationAttachmentImage.decodeAsAppIcon(candidate) else {
                 log.warning("Dropping notification image with unsupported format")
                 continue
             }
             let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("sefirah-notification-attachment-\(UUID().uuidString).\(image.fileExtension)")
-            guard (try? image.data.write(to: url)) != nil else { continue }
+                .appendingPathComponent("sefirah-notification-attachment-\(UUID().uuidString).png")
+            guard (try? png.write(to: url)) != nil else { continue }
             return url.path
         }
         return nil
