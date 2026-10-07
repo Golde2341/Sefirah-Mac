@@ -25,6 +25,20 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(loaded.actions.first?.actionId, "power")
     }
 
+    func testRestartAdbOnLaunchRoundTrip() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = SettingsStore(directory: directory)
+        XCTAssertFalse(try store.loadGeneral().restartAdbServerOnLaunch)
+
+        var updated = try store.loadGeneral()
+        updated.restartAdbServerOnLaunch = true
+        try store.saveGeneral(updated)
+        XCTAssertTrue(try store.loadGeneral().restartAdbServerOnLaunch)
+    }
+
     func testDeviceSettingsClampBatteryThreshold() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")

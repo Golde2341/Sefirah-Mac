@@ -461,6 +461,9 @@
     "Restart ADB server" : {
 
     },
+    "Restart ADB server when opening the app" : {
+
+    },
     "Retry" : {
 
     },

@@ -57,6 +57,8 @@ struct SettingsView: View {
                     Text("Leave empty to use the bundled copies. A custom scrcpy uses its own scrcpy-server.")
                         .font(.caption).foregroundStyle(.secondary)
                     Button("Save paths") { model.saveGeneral() }
+                    Toggle("Restart ADB server when opening the app", isOn: $model.general.restartAdbServerOnLaunch)
+                        .onChange(of: model.general.restartAdbServerOnLaunch) { _, _ in model.saveGeneral() }
                     HStack {
                         Button("Restart ADB server") { model.restartAdbServer() }
                         if let result = model.adbRestartResult {

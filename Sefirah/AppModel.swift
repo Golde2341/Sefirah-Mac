@@ -167,6 +167,10 @@ final class AppModel: PairingDecider {
             runner.terminateAll()
             MainActor.assumeIsolated { self?.mirrors.values.forEach { $0.emergencyStop() } }
         }
+
+        if loadedGeneral.restartAdbServerOnLaunch {
+            restartAdbServer()
+        }
     }
 
     var selectedDevice: ConnectedPeer? {

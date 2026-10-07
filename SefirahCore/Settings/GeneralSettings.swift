@@ -19,6 +19,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     public var mirrorFallbackToExternal: Bool
     /// Open the corresponding app when clicking a notification banner or item.
     public var openAppOnNotificationClick: Bool
+    /// Restart the local adb server (`adb kill-server` + `start-server`) when Sefirah launches.
+    public var restartAdbServerOnLaunch: Bool
 
     public init(
         startupOption: StartupOptions = .inTray,
@@ -33,7 +35,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         mirrorBackend: MirrorBackend = .native,
         verboseMirrorLogs: Bool = false,
         mirrorFallbackToExternal: Bool = false,
-        openAppOnNotificationClick: Bool = true
+        openAppOnNotificationClick: Bool = true,
+        restartAdbServerOnLaunch: Bool = false
     ) {
         self.startupOption = startupOption
         self.theme = theme
@@ -48,6 +51,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.verboseMirrorLogs = verboseMirrorLogs
         self.mirrorFallbackToExternal = mirrorFallbackToExternal
         self.openAppOnNotificationClick = openAppOnNotificationClick
+        self.restartAdbServerOnLaunch = restartAdbServerOnLaunch
     }
 
     /// Tolerant decoding so `general.json` files written before a field existed still load.
@@ -67,6 +71,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         verboseMirrorLogs = try c.decodeIfPresent(Bool.self, forKey: .verboseMirrorLogs) ?? defaults.verboseMirrorLogs
         mirrorFallbackToExternal = try c.decodeIfPresent(Bool.self, forKey: .mirrorFallbackToExternal) ?? defaults.mirrorFallbackToExternal
         openAppOnNotificationClick = try c.decodeIfPresent(Bool.self, forKey: .openAppOnNotificationClick) ?? defaults.openAppOnNotificationClick
+        restartAdbServerOnLaunch = try c.decodeIfPresent(Bool.self, forKey: .restartAdbServerOnLaunch) ?? defaults.restartAdbServerOnLaunch
     }
 }
 
