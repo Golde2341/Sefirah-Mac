@@ -6,23 +6,30 @@ import SwiftUI
 struct MirrorSettingsView: View {
     @Bindable var model: AppModel
     let deviceId: String?
+    @State private var unlockConfiguration: UnlockConfiguration?
 
     var body: some View {
-        Picker("Backend", selection: $model.general.mirrorBackend) {
-            Text("Native (in-app)").tag(MirrorBackend.native)
-            Text("External scrcpy window").tag(MirrorBackend.external)
-        }
-        .onChange(of: model.general.mirrorBackend) { _, _ in model.saveGeneral() }
-        Toggle("Fall back to external scrcpy when the native mirror fails", isOn: $model.general.mirrorFallbackToExternal)
-            .onChange(of: model.general.mirrorFallbackToExternal) { _, _ in model.saveGeneral() }
-            .disabled(!model.canUseExternalScrcpy)
-        Toggle("Verbose scrcpy-server logs", isOn: $model.general.verboseMirrorLogs)
-            .onChange(of: model.general.verboseMirrorLogs) { _, _ in model.saveGeneral() }
+        let _ = model.deviceSettingsRevision
+        Group {
+            Picker("Backend", selection: $model.general.mirrorBackend) {
+                Text("Native (in-app)").tag(MirrorBackend.native)
+                Text("External scrcpy window").tag(MirrorBackend.external)
+            }
+            .onChange(of: model.general.mirrorBackend) { _, _ in model.saveGeneral() }
+            Toggle("Fall back to external scrcpy when the native mirror fails", isOn: $model.general.mirrorFallbackToExternal)
+                .onChange(of: model.general.mirrorFallbackToExternal) { _, _ in model.saveGeneral() }
+                .disabled(!model.canUseExternalScrcpy)
+            Toggle("Verbose scrcpy-server logs", isOn: $model.general.verboseMirrorLogs)
+                .onChange(of: model.general.verboseMirrorLogs) { _, _ in model.saveGeneral() }
 
-        if let deviceId {
-            deviceSection(deviceId)
-        } else {
-            Text("Select a paired device to edit its mirroring options.").font(.caption).foregroundStyle(.secondary)
+            if let deviceId {
+                deviceSection(deviceId)
+            } else {
+                Text("Select a paired device to edit its mirroring options.").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .sheet(item: $unlockConfiguration) { configuration in
+            UnlockCommandsSettingsView(model: model, deviceId: configuration.id)
         }
     }
 
@@ -67,10 +74,16 @@ struct MirrorSettingsView: View {
             Toggle("Open apps on a virtual display", isOn: bind(id, \.isVirtualDisplayEnabled))
             TextField("Virtual display size (WxH[/dpi], empty = phone size)", text: bind(id, \.virtualDisplaySize))
             Toggle("Flexible display (resize with the window)", isOn: bind(id, \.flexDisplay))
-            Toggle("Run unlock commands before launching", isOn: bind(id, \.unlockDeviceBeforeLaunch))
-            let commands = model.deviceSettings(for: id).unlockCommands.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }
-            Text(commands.isEmpty ? "No unlock commands configured." : "\(commands.count) adb shell command(s) run before mirroring starts.")
-                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Unlock commands")
+                    Text(unlockSummary(id))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Configure…") { unlockConfiguration = UnlockConfiguration(id: id) }
+            }
         }
         DisclosureGroup("Custom server options") {
             TextField("key=value pairs (e.g. stay_awake=true show_touches=true)", text: bind(id, \.customArguments))
@@ -98,4 +111,15 @@ struct MirrorSettingsView: View {
             }
         )
     }
+
+    private func unlockSummary(_ id: String) -> String {
+        let settings = model.deviceSettings(for: id)
+        guard settings.unlockDeviceBeforeLaunch else { return "Off" }
+        let count = settings.unlockCommands.filter { !$0.command.trimmingCharacters(in: .whitespaces).isEmpty }.count
+        return count == 0 ? "On — no commands configured" : "On — \(count) command(s) run before launching"
+    }
+}
+
+private struct UnlockConfiguration: Identifiable {
+    let id: String
 }

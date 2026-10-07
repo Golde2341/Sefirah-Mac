@@ -27,7 +27,7 @@
     "%lld" : {
 
     },
-    "%lld adb shell command(s) run before mirroring starts." : {
+    "%lld command(s)" : {
 
     },
     "%lld of %lld selected" : {
@@ -59,6 +59,9 @@
     "• Xiaomi / HyperOS: Developer options ▸ USB debugging (Security settings). A Xiaomi account and SIM may be required." : {
 
     },
+    "0" : {
+
+    },
     "AAC" : {
 
     },
@@ -71,7 +74,16 @@
     "Actions" : {
 
     },
+    "Add a command, or use the PIN lockscreen template." : {
+
+    },
+    "Add command" : {
+
+    },
     "Add Link, Power, or Run actions. They sync to the phone when connected." : {
+
+    },
+    "Add template" : {
 
     },
     "Advanced" : {
@@ -152,10 +164,16 @@
     "Codec" : {
 
     },
+    "Commands run in order over adb shell before the mirror connects. Add a delay (ms) after a command when the phone needs time to react. `%pwd%` prompts are not supported on macOS yet — type the PIN in the command instead." : {
+
+    },
     "Configure Apps…" : {
 
     },
     "Configure which apps to show notifications for" : {
+
+    },
+    "Configure…" : {
 
     },
     "Connect" : {
@@ -195,6 +213,9 @@
 
     },
     "Decline" : {
+
+    },
+    "Delay" : {
 
     },
     "Deselect All" : {
@@ -281,6 +302,9 @@
     "Incoming Call" : {
 
     },
+    "input keyevent 26" : {
+
+    },
     "Input not working?" : {
 
     },
@@ -338,6 +362,15 @@
     "Mirror the phone screen" : {
 
     },
+    "Move down" : {
+
+    },
+    "Move up" : {
+
+    },
+    "ms" : {
+
+    },
     "Mute Audio" : {
 
     },
@@ -386,7 +419,7 @@
     "No phone connected. Pair a device from Settings or complete onboarding." : {
 
     },
-    "No unlock commands configured." : {
+    "No unlock commands" : {
 
     },
     "Notification Apps" : {
@@ -437,6 +470,9 @@
     "Paste Mac Clipboard to Phone" : {
 
     },
+    "Pause after this command, in milliseconds" : {
+
+    },
     "Phone only (no audio stream)" : {
 
     },
@@ -447,6 +483,9 @@
 
     },
     "Pin %@" : {
+
+    },
+    "PIN lockscreen" : {
 
     },
     "Pinned" : {
@@ -474,6 +513,9 @@
 
     },
     "Refresh the selected phone's app list, then try again." : {
+
+    },
+    "Remove command" : {
 
     },
     "Reply" : {
@@ -611,6 +653,9 @@
     "The phone reported that audio capture is unavailable (Android < 11, or the audio source is unsupported)." : {
 
     },
+    "The PIN template wakes the phone, swipes up to the PIN pad, enters 0000 and presses Enter — replace 0000 with your PIN." : {
+
+    },
     "The stream continues; touch and keys still work." : {
 
     },
@@ -624,6 +669,9 @@
 
     },
     "Turn phone screen off while mirroring" : {
+
+    },
+    "Unlock commands" : {
 
     },
     "Unmute Audio" : {

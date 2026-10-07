@@ -125,6 +125,7 @@
 		E0F0BAC73BBE4F9682A26E1D /* ScrcpyDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DBBF0D9C8C172D1057C53A /* ScrcpyDiagnostics.swift */; };
 		8A7B6C5D4E3F2A1B0C9D8E7F /* ScrcpyAppWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F4B6A8C0D1E2F3A4B5C6D7E /* ScrcpyAppWrapper.swift */; };
 		7D8E9F0A1B2C3D4E5F607182 /* ScrcpyAppRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C5B4A39281706F5E4D3C2B1 /* ScrcpyAppRunner.swift */; };
+		1F2E3D4C5B6A798867564534 /* UnlockCommandsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A8B7C6D5E4F302112233445 /* UnlockCommandsSettingsView.swift */; };
 		E3278A60265B3D3AB2221415 /* scrcpy-server in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8F37C060CACB47C6F88B1220 /* scrcpy-server */; };
 		E3456E02EBFBA4E91C9A1026 /* MirrorInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CEAAD057757E8464D280AD0 /* MirrorInput.swift */; };
 		E7F83710B3D52F439A3E8755 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14540E58A87FFE38D9A2778C /* SettingsView.swift */; };
@@ -275,6 +276,7 @@
 		83DBBF0D9C8C172D1057C53A /* ScrcpyDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyDiagnostics.swift; sourceTree = "<group>"; };
 		2F4B6A8C0D1E2F3A4B5C6D7E /* ScrcpyAppWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyAppWrapper.swift; sourceTree = "<group>"; };
 		6C5B4A39281706F5E4D3C2B1 /* ScrcpyAppRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyAppRunner.swift; sourceTree = "<group>"; };
+		9A8B7C6D5E4F302112233445 /* UnlockCommandsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCommandsSettingsView.swift; sourceTree = "<group>"; };
 		84249927B6D2C5C3196FC1E9 /* MainSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSplitView.swift; sourceTree = "<group>"; };
 		876E784C4DF5D4DB8653C43B /* MirrorEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorEvent.swift; sourceTree = "<group>"; };
 		8897F5BCE157362243909826 /* MediaPacket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPacket.swift; sourceTree = "<group>"; };
@@ -608,6 +610,7 @@
 				A58E677DB1D3773143F6258E /* MirrorView.swift */,
 				2F4B6A8C0D1E2F3A4B5C6D7E /* ScrcpyAppWrapper.swift */,
 				6C5B4A39281706F5E4D3C2B1 /* ScrcpyAppRunner.swift */,
+				9A8B7C6D5E4F302112233445 /* UnlockCommandsSettingsView.swift */,
 			);
 			path = Mirror;
 			sourceTree = "<group>";
@@ -1042,6 +1045,7 @@
 				D9978DC830764437000D384B /* MacMediaController.swift in Sources */,
 				8A7B6C5D4E3F2A1B0C9D8E7F /* ScrcpyAppWrapper.swift in Sources */,
 				7D8E9F0A1B2C3D4E5F607182 /* ScrcpyAppRunner.swift in Sources */,
+				1F2E3D4C5B6A798867564534 /* UnlockCommandsSettingsView.swift in Sources */,
 				E9EFF13AD4F058352D99D92B /* MirrorToolbar.swift in Sources */,
 				84567157ABC6F53EB6E24914 /* MirrorView.swift in Sources */,
 				643D0B086082C9F2DB1F8619 /* NotificationFeedView.swift in Sources */,

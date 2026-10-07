@@ -87,6 +87,8 @@ final class AppModel: PairingDecider {
     var selectedTab: MainTab = .calls
     /// Native mirror sessions keyed like `mirroringKeys`.
     var mirrors: [String: MirrorController] = [:]
+    /// Bumped when per-device settings are saved so views displaying them can refresh.
+    private(set) var deviceSettingsRevision = 0
 
     private var pairingContinuation: CheckedContinuation<Bool, Never>?
     private(set) var session: SessionManager?
@@ -843,6 +845,9 @@ final class AppModel: PairingDecider {
         mutate(&current)
         do {
             try settings.saveDevice(current)
+            // Device settings are stored on disk, not in observable state; bump a revision so
+            // SwiftUI views that display them refresh.
+            deviceSettingsRevision += 1
         } catch {
             toolFailure = ToolFailure(title: "Could not save device settings", message: error.localizedDescription, detail: nil)
         }
