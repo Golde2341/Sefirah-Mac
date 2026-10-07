@@ -42,6 +42,8 @@ struct SettingsView: View {
                     .onChange(of: model.general.menuBarRinger) { model.saveGeneral() }
                 Toggle("Send clipboard", isOn: $model.general.menuBarSendClipboard)
                     .onChange(of: model.general.menuBarSendClipboard) { model.saveGeneral() }
+                Toggle("Find phone", isOn: $model.general.menuBarFindPhone)
+                    .onChange(of: model.general.menuBarFindPhone) { model.saveGeneral() }
             }
             Section("Notifications") {
                 Toggle("Open app when clicking notification", isOn: $model.general.openAppOnNotificationClick)

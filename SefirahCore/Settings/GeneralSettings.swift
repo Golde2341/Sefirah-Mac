@@ -33,6 +33,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     public var menuBarRinger: Bool
     /// Menu bar panel: show the Send clipboard button.
     public var menuBarSendClipboard: Bool
+    /// Menu bar panel: show the Find phone button.
+    public var menuBarFindPhone: Bool
 
     public init(
         startupOption: StartupOptions = .inTray,
@@ -54,7 +56,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         menuBarScreenMirror: Bool = true,
         menuBarDnd: Bool = true,
         menuBarRinger: Bool = true,
-        menuBarSendClipboard: Bool = true
+        menuBarSendClipboard: Bool = true,
+        menuBarFindPhone: Bool = true
     ) {
         self.startupOption = startupOption
         self.theme = theme
@@ -76,6 +79,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.menuBarDnd = menuBarDnd
         self.menuBarRinger = menuBarRinger
         self.menuBarSendClipboard = menuBarSendClipboard
+        self.menuBarFindPhone = menuBarFindPhone
     }
 
     /// Tolerant decoding so `general.json` files written before a field existed still load.
@@ -102,6 +106,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         menuBarDnd = try c.decodeIfPresent(Bool.self, forKey: .menuBarDnd) ?? defaults.menuBarDnd
         menuBarRinger = try c.decodeIfPresent(Bool.self, forKey: .menuBarRinger) ?? defaults.menuBarRinger
         menuBarSendClipboard = try c.decodeIfPresent(Bool.self, forKey: .menuBarSendClipboard) ?? defaults.menuBarSendClipboard
+        menuBarFindPhone = try c.decodeIfPresent(Bool.self, forKey: .menuBarFindPhone) ?? defaults.menuBarFindPhone
     }
 }
 

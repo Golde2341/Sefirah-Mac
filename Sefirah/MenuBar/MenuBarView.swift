@@ -6,137 +6,388 @@ struct MenuBarView: View {
     @Bindable var model: AppModel
     @Environment(\.openWindow) private var openWindow
 
+    /// Contrast color for the panel's iconography.
+    private let accent = Color.blue
+
+    private let ringerModes = [0, 1, 2]
+
+    @State private var openAppsExpanded = false
+    @State private var ringerExpanded = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let device = model.selectedDevice {
-                Text(device.name).font(.headline)
-                Text(device.isConnected ? "Connected" : "Disconnected")
-            } else {
-                Text("Sefirah").font(.headline)
-            }
+        VStack(alignment: .leading, spacing: 10) {
+            header
             if let note = model.notifications.first {
-                Text(note.title ?? note.appName).lineLimit(1)
+                notificationChip(note)
             }
             Divider()
-            if model.general.menuBarOpenApps {
-                Menu {
-                    let pinned = model.sortedApps.filter(\.pinned)
-                    let recent = model.recentlyOpenedApps.filter { !$0.pinned }
-                    if pinned.isEmpty && recent.isEmpty {
-                        Text("No apps to open")
-                    } else {
-                        if !pinned.isEmpty {
-                            Section("Pinned") {
-                                ForEach(pinned, id: \.appKey) { app in
-                                    openButton(for: app)
-                                }
-                            }
-                        }
-                        if !recent.isEmpty {
-                            Section("Recent") {
-                                ForEach(recent, id: \.appKey) { app in
-                                    openButton(for: app)
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    Label("Open apps", systemImage: "square.grid.2x2")
-                }
-                .disabled(model.recentlyOpenedApps.isEmpty && model.apps.allSatisfy { !$0.pinned })
-            }
-            if model.general.menuBarScreenMirror {
-                screenMirrorButton
-            }
-            if model.general.menuBarDnd {
-                Button {
-                    model.toggleDnd()
-                } label: {
-                    Label(model.live.dndEnabled == true ? "DND On" : "DND", systemImage: "moon")
-                }
-                .disabled(model.selectedDevice?.isConnected != true)
-            }
-            if model.general.menuBarRinger {
-                Picker("Ringer", selection: ringerBinding) {
-                    Text("Silent").tag(0)
-                    Text("Vibrate").tag(1)
-                    Text("Ring").tag(2)
-                }
-                .pickerStyle(.menu)
-                .disabled(model.selectedDevice?.isConnected != true)
-            }
-            if model.general.menuBarSendClipboard {
-                Button {
-                    model.sendClipboard()
-                } label: {
-                    Label("Send clipboard", systemImage: "doc.on.clipboard")
-                }
-                .disabled(model.selectedDevice?.isConnected != true)
-            }
             if showsMenuBarButtons {
+                featureRows
                 Divider()
             }
-            Button("Show Window") {
-                NSApp.setActivationPolicy(.regular)
-                model.showMainWindow = true
-                openWindow(id: "main")
-                NSApp.activate(ignoringOtherApps: true)
-            }
-            Button(model.live.soundPlaying ? "Stop find phone" : "Find phone") {
-                model.toggleFindPhone()
-            }
-            Button("Quit Sefirah") {
-                NSApp.terminate(nil)
+            VStack(alignment: .leading, spacing: 2) {
+                MenuBarRowButton(title: "Show Window", systemImage: "macwindow", tint: accent) {
+                    showWindow()
+                }
+                MenuBarRowButton(title: "Quit Sefirah", systemImage: "power", tint: .red) {
+                    NSApp.terminate(nil)
+                }
             }
         }
-        .padding(8)
-        .frame(minWidth: 220)
+        .padding(10)
+        .frame(minWidth: 240)
     }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.16), .black],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.12), lineWidth: 1)
+                Image(systemName: "iphone.gen3")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 34, height: 34)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(model.selectedDevice?.name ?? "Sefirah")
+                    .font(.headline)
+                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 6, height: 6)
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var statusColor: Color {
+        guard let device = model.selectedDevice else { return .secondary }
+        return device.isConnected ? .green : .orange
+    }
+
+    private var statusText: String {
+        guard let device = model.selectedDevice else { return "No device" }
+        return device.isConnected ? "Connected" : "Disconnected"
+    }
+
+    private func notificationChip(_ note: NotificationSnapshot) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "bell.badge.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(accent)
+            Text(note.title ?? note.appName)
+                .font(.caption)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    // MARK: - Configurable buttons
 
     private var showsMenuBarButtons: Bool {
         model.general.menuBarOpenApps || model.general.menuBarScreenMirror || model.general.menuBarDnd
-            || model.general.menuBarRinger || model.general.menuBarSendClipboard
-    }
-
-    private var ringerBinding: Binding<Int> {
-        Binding(
-            get: { model.live.ringerMode ?? 2 },
-            set: { model.setRingerMode($0) }
-        )
+            || model.general.menuBarRinger || model.general.menuBarSendClipboard || model.general.menuBarFindPhone
     }
 
     @ViewBuilder
-    private var screenMirrorButton: some View {
+    private var featureRows: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if model.general.menuBarOpenApps {
+                MenuBarRowButton(
+                    title: "Open apps",
+                    systemImage: "square.grid.2x2",
+                    tint: accent,
+                    disabled: !hasApps,
+                    disclosure: .degrees(openAppsExpanded ? 90 : 0)
+                ) {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        openAppsExpanded.toggle()
+                        if openAppsExpanded { ringerExpanded = false }
+                    }
+                }
+                if openAppsExpanded {
+                    openAppsList
+                }
+            }
+            if model.general.menuBarScreenMirror {
+                screenMirrorRow
+            }
+            if model.general.menuBarDnd {
+                dndRow
+            }
+            if model.general.menuBarRinger {
+                MenuBarRowButton(
+                    title: "Ringer",
+                    systemImage: "bell",
+                    trailing: ringerName(model.live.ringerMode ?? 2),
+                    tint: accent,
+                    disabled: !isConnected,
+                    disclosure: .degrees(ringerExpanded ? 90 : 0)
+                ) {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        ringerExpanded.toggle()
+                        if ringerExpanded { openAppsExpanded = false }
+                    }
+                }
+                if ringerExpanded {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(ringerModes, id: \.self) { mode in
+                            MenuBarSubRow(
+                                title: ringerName(mode),
+                                selected: model.live.ringerMode == mode,
+                                tint: accent
+                            ) {
+                                model.setRingerMode(mode)
+                                withAnimation(.easeInOut(duration: 0.15)) { ringerExpanded = false }
+                            }
+                        }
+                    }
+                }
+            }
+            if model.general.menuBarSendClipboard {
+                MenuBarRowButton(
+                    title: "Send clipboard",
+                    systemImage: "doc.on.clipboard",
+                    tint: accent,
+                    disabled: !isConnected
+                ) {
+                    model.sendClipboard()
+                }
+            }
+            if model.general.menuBarFindPhone {
+                MenuBarRowButton(
+                    title: model.live.soundPlaying ? "Stop find phone" : "Find phone",
+                    systemImage: "iphone.radiowaves.left.and.right",
+                    tint: accent,
+                    disabled: !isConnected
+                ) {
+                    model.toggleFindPhone()
+                }
+            }
+        }
+    }
+
+    private var hasApps: Bool {
+        !model.recentlyOpenedApps.isEmpty || model.apps.contains(where: \.pinned)
+    }
+
+    private var openAppsList: some View {
+        let pinned = model.sortedApps.filter(\.pinned)
+        let recent = model.recentlyOpenedApps.filter { !$0.pinned }
+        return VStack(alignment: .leading, spacing: 2) {
+            if pinned.isEmpty, recent.isEmpty {
+                MenuBarSubRow(title: "No apps to open", disabled: true, tint: accent) {}
+            } else {
+                if !pinned.isEmpty {
+                    if !recent.isEmpty {
+                        sectionLabel("Pinned")
+                    }
+                    ForEach(pinned, id: \.appKey) { app in
+                        MenuBarSubRow(title: LocalizedStringKey(app.appName), tint: accent) { launch(app) }
+                    }
+                }
+                if !recent.isEmpty {
+                    if !pinned.isEmpty {
+                        sectionLabel("Recent")
+                    }
+                    ForEach(recent, id: \.appKey) { app in
+                        MenuBarSubRow(title: LocalizedStringKey(app.appName), tint: accent) { launch(app) }
+                    }
+                }
+            }
+        }
+    }
+
+    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .padding(.leading, 35)
+            .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private var screenMirrorRow: some View {
         if let device = model.selectedDevice, model.isMirroring(device.id) {
-            Button {
+            MenuBarRowButton(title: "Stop mirroring", systemImage: "stop.circle", tint: accent) {
                 model.stopMirrors(deviceId: device.id)
-            } label: {
-                Label("Stop mirroring", systemImage: "stop.circle")
             }
         } else {
-            Button {
-                startMirroring()
-            } label: {
-                Label("Screen mirror", systemImage: "rectangle.on.rectangle")
+            MenuBarRowButton(
+                title: "Screen mirror",
+                systemImage: "rectangle.on.rectangle",
+                tint: accent,
+                disabled: !isConnected || !model.canMirror
+            ) {
+                startMirror(package: nil, appName: nil)
             }
-            .disabled(model.selectedDevice?.isConnected != true || !model.canMirror)
         }
+    }
+
+    private var dndRow: some View {
+        MenuBarRowButton(
+            title: "Do Not Disturb",
+            systemImage: model.live.dndEnabled == true ? "moon.fill" : "moon",
+            trailing: model.live.dndEnabled == true ? "On" : "Off",
+            tint: accent,
+            disabled: !isConnected
+        ) {
+            model.toggleDnd()
+        }
+    }
+
+    private func ringerName(_ mode: Int) -> LocalizedStringKey {
+        switch mode {
+        case 0: "Silent"
+        case 1: "Vibrate"
+        default: "Ring"
+        }
+    }
+
+    private var isConnected: Bool { model.selectedDevice?.isConnected == true }
+
+    // MARK: - Actions
+
+    private func launch(_ app: ApplicationRecord) {
+        startMirror(package: app.packageName, appName: app.appName)
+        withAnimation(.easeInOut(duration: 0.15)) { openAppsExpanded = false }
     }
 
     /// Native mirrors render in the app's Mirror tab, so bring the window up before starting one.
-    private func startMirroring() {
+    private func startMirror(package: String?, appName: String?) {
         if model.general.mirrorBackend == .native {
-            NSApp.setActivationPolicy(.regular)
-            model.showMainWindow = true
-            openWindow(id: "main")
-            NSApp.activate(ignoringOtherApps: true)
+            showWindow()
         }
-        model.startMirror()
+        model.startMirror(package: package, appName: appName)
     }
 
-    private func openButton(for app: ApplicationRecord) -> some View {
-        Button(app.appName) {
-            model.startMirror(package: app.packageName, appName: app.appName)
+    private func showWindow() {
+        NSApp.setActivationPolicy(.regular)
+        model.showMainWindow = true
+        openWindow(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
+/// Icon + title row shared by the panel's buttons.
+private struct MenuBarRowLabel: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    var trailing: LocalizedStringKey?
+    var tint: Color = .blue
+    var disclosure: Angle?
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(tint)
+                .frame(width: 18)
+            Text(title)
+                .font(.system(size: 13))
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            if let trailing {
+                Text(trailing)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            if let disclosure {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.tertiary)
+                    .rotationEffect(disclosure)
+            }
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+}
+
+/// Plain button row with a hover highlight.
+private struct MenuBarRowButton: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    var trailing: LocalizedStringKey?
+    var tint: Color = .blue
+    var disabled = false
+    var disclosure: Angle?
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            MenuBarRowLabel(title: title, systemImage: systemImage, trailing: trailing, tint: tint, disclosure: disclosure)
+                .background(
+                    hovering ? tint.opacity(0.14) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .opacity(disabled ? 0.5 : 1)
+        .onHover { hovering = $0 && !disabled }
+    }
+}
+
+/// Indented row for the Open apps / Ringer lists.
+private struct MenuBarSubRow: View {
+    let title: LocalizedStringKey
+    var selected = false
+    var disabled = false
+    var tint: Color = .blue
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(tint)
+                }
+            }
+            .padding(.leading, 35)
+            .padding(.trailing, 8)
+            .padding(.vertical, 5)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                hovering ? tint.opacity(0.14) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .opacity(disabled ? 0.5 : 1)
+        .onHover { hovering = $0 && !disabled }
     }
 }
