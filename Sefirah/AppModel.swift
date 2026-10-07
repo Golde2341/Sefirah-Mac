@@ -102,6 +102,8 @@ final class AppModel: PairingDecider {
     private let macNotifications = MacNotificationDelivery.shared
     private let clipboardMonitor = ClipboardSyncMonitor()
     private var terminateObserver: NSObjectProtocol?
+    private var mediaRefreshTask: Task<Void, Never>?
+    private var macPlaybackSources: [String: Set<String>] = [:]
 
     init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
@@ -225,6 +227,14 @@ final class AppModel: PairingDecider {
         }
         if loadedGeneral.syncClipboardToPhone {
             clipboardMonitor.start()
+        }
+
+        mediaRefreshTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                await publishMacPlaybackMetadata(to: paired.filter(\.isConnected).map(\.id))
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
         }
     }
 
@@ -902,6 +912,9 @@ final class AppModel: PairingDecider {
             refreshDevice()
             sendActionList(to: peer.id)
             session?.send(to: peer.id, .requestApplicationList)
+            Task { [weak self] in
+                await self?.publishMacPlaybackMetadata(to: [peer.id])
+            }
         case .disconnected(let deviceId, let forced):
             if let index = paired.firstIndex(where: { $0.id == deviceId }) {
                 paired[index].isConnected = false
@@ -910,6 +923,18 @@ final class AppModel: PairingDecider {
                 session?.reconnectPairedDevices()
             }
         case .inboundMessage(let deviceId, let message):
+            if case .mediaAction(let action) = message,
+               MacMediaController.handles(action)
+            {
+                Task { [weak self] in
+                    await MacMediaController.handle(action)
+                    if action.actionType == .next || action.actionType == .previous {
+                        self?.removeMacPlaybackSession(from: deviceId)
+                        try? await Task.sleep(nanoseconds: 800_000_000)
+                    }
+                    await self?.publishMacPlaybackMetadata(to: [deviceId])
+                }
+            }
             let result = try? hub.handle(deviceId: deviceId, message)
             apply(result?.effects ?? [], deviceId: deviceId)
             forwardNotification(message, from: deviceId)
@@ -917,6 +942,36 @@ final class AppModel: PairingDecider {
                 refreshDevice()
             }
         }
+    }
+
+    private func publishMacPlaybackMetadata(to deviceIDs: [String]) async {
+        guard !deviceIDs.isEmpty else { return }
+        let playback = await MacMediaController.playbackInfos()
+        let sources = Set(playback.map(\.source))
+
+        for deviceID in deviceIDs {
+            for info in playback {
+                session?.send(to: deviceID, .playbackInfo(info))
+            }
+
+            for source in (macPlaybackSources[deviceID] ?? []).subtracting(sources) {
+                session?.send(
+                    to: deviceID,
+                    .playbackInfo(PlaybackInfo(infoType: .removedSession, source: source, isPlaying: false))
+                )
+            }
+            macPlaybackSources[deviceID] = sources
+        }
+    }
+
+    private func removeMacPlaybackSession(from deviceID: String) {
+        for source in macPlaybackSources[deviceID] ?? [] {
+            session?.send(
+                to: deviceID,
+                .playbackInfo(PlaybackInfo(infoType: .removedSession, source: source, isPlaying: false))
+            )
+        }
+        macPlaybackSources[deviceID] = []
     }
 
     func refreshDevice() {

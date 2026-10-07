@@ -43,6 +43,8 @@
 	<string>NSApplication</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Sefirah discovers and connects to your Android phone on the local network.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Sefirah reads and controls media playing on your Mac from your paired Android device.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_sefirah._udp</string>

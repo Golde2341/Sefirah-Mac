@@ -25,6 +25,7 @@
 		20A5517B8AFCB725AF8DA305 /* ScrcpyLaunchPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C886ECD765F79F15A0722DA0 /* ScrcpyLaunchPlannerTests.swift */; };
 		24017A4D4A5295B8A7554075 /* ScrcpyDeviceSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E84B49A3C60BF07B474EFB /* ScrcpyDeviceSelectionTests.swift */; };
 		2586D0AE3BE2D48FBA72C314 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78ECEAC0C2EF37B59E9D3CC1 /* AppModel.swift */; };
+		282F3ED12B9949AA899360D0 /* UnlockCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5270CCAE2194EF1861E534E /* UnlockCommandsTests.swift */; };
 		2C3A975EE1330DB7E64EA898 /* BundledToolsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E11BC7AF9F7381E2DC66BA2 /* BundledToolsTests.swift */; };
 		2C3B572C0588BC0FDF269C36 /* MainSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84249927B6D2C5C3196FC1E9 /* MainSplitView.swift */; };
 		2E375045E16695E73053AFBA /* MacKeyMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41FDDC19115878726484044A /* MacKeyMap.swift */; };
@@ -62,6 +63,7 @@
 		6328A3D11540A20EFDED48F0 /* AppsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E61BFB063E1E3A6B1B877CC3 /* AppsView.swift */; };
 		643D0B086082C9F2DB1F8619 /* NotificationFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D20C7A4F8582D70E82DB74 /* NotificationFeedView.swift */; };
 		6739D94484A62FF024909648 /* FeatureHubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1114E47357A809096A3251C /* FeatureHubTests.swift */; };
+		6A237FAF488743EFA15D4868 /* UnlockCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF71A1CB27C4DC0A72D8F6D /* UnlockCommands.swift */; };
 		6AEB914CA53FE2877C5A2E08 /* SessionHandshakeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7895785762FB3ED70AD57780 /* SessionHandshakeTests.swift */; };
 		6E2609CB1FE42879FC92D239 /* PeerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA65DB2C2DF0659BFA0586AE /* PeerModels.swift */; };
 		6F1D5021F8F945DDDD0A1E29 /* FixtureBytes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354B496FD8B66BBAAAEB9C3A /* FixtureBytes.swift */; };
@@ -114,6 +116,7 @@
 		CE96B2A8F7E26FEFD57B672A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 53036A1D009C96610B4BF207 /* Localizable.xcstrings */; };
 		D5A6CDD7FDF1548AA7F1324F /* ClipboardApply.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5FB6EBDDBA354E92A2EF751 /* ClipboardApply.swift */; };
 		D689D281C772E22B037EA11A /* LICENSE in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8F347E0B0D816376046EE31A /* LICENSE */; };
+		D9978DC830764437000D384B /* MacMediaController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9978DC730764437000D384B /* MacMediaController.swift */; };
 		D9A43B4A3076190100819346 /* Sefirah.icon in Resources */ = {isa = PBXBuildFile; fileRef = D9A43B493076190100819346 /* Sefirah.icon */; };
 		D9A4FD4A3075D8C5002D0C92 /* MacNotificationDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A4FD493075D8C5002D0C92 /* MacNotificationDelivery.swift */; };
 		D9A4FD4C3075E20A002D0C92 /* NotificationAppSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A4FD4B3075E20A002D0C92 /* NotificationAppSelectionView.swift */; };
@@ -130,8 +133,6 @@
 		F0E0910BACE04AF667B10678 /* BundledTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC4EB642815C91ADAC6BA21 /* BundledTools.swift */; };
 		F136ED29B10A6445FFF09E01 /* SocketPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1959E07C06DF0EFD7AD59282 /* SocketPayloads.swift */; };
 		F338F29F28F713D2EC2B0323 /* AdbClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 385070B2D6A0C8252C5EA338 /* AdbClientTests.swift */; };
-		6A237FAF488743EFA15D4868 /* UnlockCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF71A1CB27C4DC0A72D8F6D /* UnlockCommands.swift */; };
-		282F3ED12B9949AA899360D0 /* UnlockCommandsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5270CCAE2194EF1861E534E /* UnlockCommandsTests.swift */; };
 		F4DA140B69750974746BA5C2 /* AdbOutputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F64EA04F107A8687824FD981 /* AdbOutputTests.swift */; };
 		F6124B5C951B139FCC2E978F /* CertificateStashTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FA41226ECD54AE23C644827 /* CertificateStashTests.swift */; };
 		F6DA2F65B23A9273770AFD9F /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37E48B68646D10D5EF05CC0 /* AudioPlayer.swift */; };
@@ -237,8 +238,6 @@
 		33EF659D10482974887D9984 /* MirrorDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorDiagnostics.swift; sourceTree = "<group>"; };
 		354B496FD8B66BBAAAEB9C3A /* FixtureBytes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureBytes.swift; sourceTree = "<group>"; };
 		385070B2D6A0C8252C5EA338 /* AdbClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdbClientTests.swift; sourceTree = "<group>"; };
-		5BF71A1CB27C4DC0A72D8F6D /* UnlockCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCommands.swift; sourceTree = "<group>"; };
-		D5270CCAE2194EF1861E534E /* UnlockCommandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCommandsTests.swift; sourceTree = "<group>"; };
 		3A0BD5025BF8D704EC788848 /* SocketMessageGoldenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocketMessageGoldenTests.swift; sourceTree = "<group>"; };
 		3C492FA52556B049CFE8F8D1 /* QrCodeImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QrCodeImage.swift; sourceTree = "<group>"; };
 		3E11BC7AF9F7381E2DC66BA2 /* BundledToolsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundledToolsTests.swift; sourceTree = "<group>"; };
@@ -254,6 +253,7 @@
 		4E08D91B5016304D1EB30FD3 /* PairingDialog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingDialog.swift; sourceTree = "<group>"; };
 		53036A1D009C96610B4BF207 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		55E7EDFE58865D2811FDA690 /* SefirahCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SefirahCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		5BF71A1CB27C4DC0A72D8F6D /* UnlockCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCommands.swift; sourceTree = "<group>"; };
 		6536C2FD89C2963E20250C11 /* ScrcpyProcessRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyProcessRunnerTests.swift; sourceTree = "<group>"; };
 		65E7BA04811A8919497074EA /* AppDatabaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabaseTests.swift; sourceTree = "<group>"; };
 		6CEAAD057757E8464D280AD0 /* MirrorInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorInput.swift; sourceTree = "<group>"; };
@@ -315,7 +315,9 @@
 		CEB4AA97B9C2C18116632DE9 /* UDPDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UDPDiscovery.swift; sourceTree = "<group>"; };
 		CF66F260ED1ED376AEB540FA /* FeatureHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureHub.swift; sourceTree = "<group>"; };
 		D3D20C7A4F8582D70E82DB74 /* NotificationFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationFeedView.swift; sourceTree = "<group>"; };
+		D5270CCAE2194EF1861E534E /* UnlockCommandsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCommandsTests.swift; sourceTree = "<group>"; };
 		D5E84B49A3C60BF07B474EFB /* ScrcpyDeviceSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyDeviceSelectionTests.swift; sourceTree = "<group>"; };
+		D9978DC730764437000D384B /* MacMediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacMediaController.swift; sourceTree = "<group>"; };
 		D9A43B493076190100819346 /* Sefirah.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Sefirah.icon; sourceTree = "<group>"; };
 		D9A4FD493075D8C5002D0C92 /* MacNotificationDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacNotificationDelivery.swift; sourceTree = "<group>"; };
 		D9A4FD4B3075E20A002D0C92 /* NotificationAppSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationAppSelectionView.swift; sourceTree = "<group>"; };
@@ -660,6 +662,7 @@
 				DD5B80657E937A4774B04822 /* Onboarding */,
 				A8841AEEE223DA887BBEEB2E /* Pairing */,
 				160DBA42CBC3BCA2E6CA8B17 /* Settings */,
+				D9978DC630764437000D384B /* Media */,
 			);
 			path = Sefirah;
 			sourceTree = "<group>";
@@ -719,6 +722,14 @@
 				958E704F393C58144C475E60 /* DeviceRailView.swift */,
 			);
 			path = Device;
+			sourceTree = "<group>";
+		};
+		D9978DC630764437000D384B /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				D9978DC730764437000D384B /* MacMediaController.swift */,
+			);
+			path = Media;
 			sourceTree = "<group>";
 		};
 		DB19D8084D622E28BF4A353D /* Audio */ = {
@@ -1022,6 +1033,7 @@
 				5486CA38B8305901A79AAE03 /* MirrorNSView.swift in Sources */,
 				BB57AA844B676052D905B71E /* MirrorSettingsView.swift in Sources */,
 				AFA24FF92E304D155E3281C1 /* MirrorSurfaceView.swift in Sources */,
+				D9978DC830764437000D384B /* MacMediaController.swift in Sources */,
 				E9EFF13AD4F058352D99D92B /* MirrorToolbar.swift in Sources */,
 				84567157ABC6F53EB6E24914 /* MirrorView.swift in Sources */,
 				643D0B086082C9F2DB1F8619 /* NotificationFeedView.swift in Sources */,
