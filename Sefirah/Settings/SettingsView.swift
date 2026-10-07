@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var model: AppModel
     @State private var isShowingNotificationAppSelection = false
+    @State private var deviceToForget: ConnectedPeer?
 
     var body: some View {
         Form {
@@ -95,6 +96,8 @@ struct SettingsView: View {
                         if !device.isConnected {
                             Button("Connect") { model.reconnect(device) }
                         }
+                        Button("Forget", role: .destructive) { deviceToForget = device }
+                            .help("Remove this pairing and its cached data")
                     }
                 }
                 ForEach(model.discovered) { peer in
@@ -131,6 +134,19 @@ struct SettingsView: View {
         .padding()
         .sheet(isPresented: $isShowingNotificationAppSelection) {
             NotificationAppSelectionView(model: model)
+        }
+        .alert(
+            "Forget Device?",
+            isPresented: Binding(
+                get: { deviceToForget != nil },
+                set: { if !$0 { deviceToForget = nil } }
+            ),
+            presenting: deviceToForget
+        ) { device in
+            Button("Forget", role: .destructive) { model.forget(device) }
+            Button("Cancel", role: .cancel) {}
+        } message: { device in
+            Text("\(device.name) will be unpaired, and its cached notifications, messages and settings will be removed. You'll need to pair it again to reconnect.")
         }
     }
 

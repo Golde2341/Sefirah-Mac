@@ -105,6 +105,34 @@ final class FeatureHubTests: XCTestCase {
         XCTAssertEqual(try hub.conversations(deviceId: "phone").first?.lastMessage, "later")
     }
 
+    func testForgetDevicePurgesOnlyThatDevice() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .notificationInfo(NotificationInfo(
+            notificationKey: "n1", infoType: .new, timestampMillis: 1,
+            appPackage: "com.chat", appName: "Chat", title: "Hi", text: "there"
+        )))
+        _ = try hub.handle(deviceId: "tablet", .notificationInfo(NotificationInfo(
+            notificationKey: "n2", infoType: .new, timestampMillis: 1,
+            appPackage: "com.chat", appName: "Chat", title: "Kept", text: "on the tablet"
+        )))
+        _ = try hub.handle(deviceId: "phone", .conversationInfo(ConversationInfo(
+            infoType: .new, threadId: 7, recipients: ["+1555"],
+            messages: [
+                TextMessage(uniqueId: 1, addresses: ["+1555"], threadId: 7, body: "hi", timestamp: 10, messageType: 1, isTextMessage: true)
+            ]
+        )))
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+        XCTAssertEqual(try hub.conversations(deviceId: "phone").count, 1)
+        XCTAssertEqual(try hub.messages(deviceId: "phone", threadId: 7).count, 1)
+
+        try hub.forgetDevice(deviceId: "phone")
+
+        XCTAssertTrue(try hub.notifications(deviceId: "phone").isEmpty)
+        XCTAssertTrue(try hub.conversations(deviceId: "phone").isEmpty)
+        XCTAssertTrue(try hub.messages(deviceId: "phone", threadId: 7).isEmpty)
+        XCTAssertEqual(try hub.notifications(deviceId: "tablet").count, 1)
+    }
+
     func testDeviceRailAndActionDispatch() throws {
         let hub = try makeHub()
         hub.actionsCatalog = [ActionItem(id: "lock", name: "Lock", actionId: "power", settings: ["powerKind": "Lock"])]

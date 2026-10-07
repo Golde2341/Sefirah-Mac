@@ -209,6 +209,26 @@ public final class FeatureHub: @unchecked Sendable {
         )
     }
 
+    /// Purges everything cached for a forgotten device: notifications, conversations and their
+    /// messages, message attachments, call log, the app list (including per-app notification
+    /// filters) and live state. The pairing record itself is owned by `DeviceRepository`.
+    public func forgetDevice(deviceId: String) throws {
+        try database.dbQueue.write { db in
+            try db.execute(
+                sql: "DELETE FROM AttachmentEntity WHERE MessageKey IN (SELECT Key FROM MessageEntity WHERE DeviceId = ?)",
+                arguments: [deviceId]
+            )
+            try db.execute(sql: "DELETE FROM MessageEntity WHERE DeviceId = ?", arguments: [deviceId])
+            try db.execute(sql: "DELETE FROM ConversationEntity WHERE DeviceId = ?", arguments: [deviceId])
+            try db.execute(sql: "DELETE FROM CallLogEntity WHERE DeviceId = ?", arguments: [deviceId])
+            try db.execute(sql: "DELETE FROM NotificationEntity WHERE DeviceId = ?", arguments: [deviceId])
+            try db.execute(sql: "DELETE FROM ApplicationEntity WHERE DeviceId = ?", arguments: [deviceId])
+        }
+        lock.lock()
+        live[deviceId] = nil
+        lock.unlock()
+    }
+
     public func notifications(deviceId: String) throws -> [NotificationSnapshot] {
         try database.dbQueue.read { db in
             let rows = try NotificationRecord

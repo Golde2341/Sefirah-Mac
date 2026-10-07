@@ -68,11 +68,13 @@
 		6328A3D11540A20EFDED48F0 /* AppsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E61BFB063E1E3A6B1B877CC3 /* AppsView.swift */; };
 		643D0B086082C9F2DB1F8619 /* NotificationFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D20C7A4F8582D70E82DB74 /* NotificationFeedView.swift */; };
 		6739D94484A62FF024909648 /* FeatureHubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1114E47357A809096A3251C /* FeatureHubTests.swift */; };
+		AB12CD34EF56010203040513 /* NotificationAttachmentImageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF56010203040512 /* NotificationAttachmentImageTests.swift */; };
 		6AEB914CA53FE2877C5A2E08 /* SessionHandshakeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7895785762FB3ED70AD57780 /* SessionHandshakeTests.swift */; };
 		6E2609CB1FE42879FC92D239 /* PeerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA65DB2C2DF0659BFA0586AE /* PeerModels.swift */; };
 		6F1D5021F8F945DDDD0A1E29 /* FixtureBytes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 354B496FD8B66BBAAAEB9C3A /* FixtureBytes.swift */; };
 		6F1E9E35F196D61468A31A31 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E1610618EC9EB8CD8B2FE4 /* MessagesView.swift */; };
 		70D78DFE3CF3232944D7FC8C /* FeatureHub.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF66F260ED1ED376AEB540FA /* FeatureHub.swift */; };
+		AB12CD34EF56010203040511 /* NotificationAttachmentImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF56010203040510 /* NotificationAttachmentImage.swift */; };
 		7137F34937974224A2E3AD1C /* Adb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE84F1954C9024677D16C18 /* Adb.swift */; };
 		75C92864955C2473A43F0640 /* ScrcpyProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13A4EDC62064E8C547890596 /* ScrcpyProcessRunner.swift */; };
 		77B7466A061A8475BD914248 /* VerificationCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40335344572C091D6790E209 /* VerificationCode.swift */; };
@@ -339,6 +341,7 @@
 		CCB689DB5105116ED8BC91E5 /* AudioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTests.swift; sourceTree = "<group>"; };
 		CEB4AA97B9C2C18116632DE9 /* UDPDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UDPDiscovery.swift; sourceTree = "<group>"; };
 		CF66F260ED1ED376AEB540FA /* FeatureHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureHub.swift; sourceTree = "<group>"; };
+		AB12CD34EF56010203040510 /* NotificationAttachmentImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationAttachmentImage.swift; sourceTree = "<group>"; };
 		D02D10002452CD43BBECBFBB /* ScrcpyAppWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyAppWrapper.swift; sourceTree = "<group>"; };
 		D3D20C7A4F8582D70E82DB74 /* NotificationFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationFeedView.swift; sourceTree = "<group>"; };
 		D5E84B49A3C60BF07B474EFB /* ScrcpyDeviceSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyDeviceSelectionTests.swift; sourceTree = "<group>"; };
@@ -347,6 +350,7 @@
 		DF5BCA3F28E559133844373B /* FileTransferFramingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTransferFramingTests.swift; sourceTree = "<group>"; };
 		E0C0FD6026B3B94E02F40134 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		E1114E47357A809096A3251C /* FeatureHubTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureHubTests.swift; sourceTree = "<group>"; };
+		AB12CD34EF56010203040512 /* NotificationAttachmentImageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationAttachmentImageTests.swift; sourceTree = "<group>"; };
 		E25844604E94E7BB0304F884 /* DeviceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceSettings.swift; sourceTree = "<group>"; };
 		E37E48B68646D10D5EF05CC0 /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
 		E4E57271F8C2916E1AF7299F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -425,6 +429,7 @@
 				95C7EC5387856B495333212A /* ClipboardApplyTests.swift */,
 				A9316A95DB3030AF26FADE93 /* CompanionHelpersTests.swift */,
 				E1114E47357A809096A3251C /* FeatureHubTests.swift */,
+				AB12CD34EF56010203040512 /* NotificationAttachmentImageTests.swift */,
 				DF5BCA3F28E559133844373B /* FileTransferFramingTests.swift */,
 				EC1D01CDD2D04A113984E825 /* IdentityStoreTests.swift */,
 				C4350C0E52D08C847CC17CA3 /* NDJSONFramingTests.swift */,
@@ -562,6 +567,7 @@
 				11461FD9739883D5EF916FE1 /* ActionRunner.swift */,
 				B5FB6EBDDBA354E92A2EF751 /* ClipboardApply.swift */,
 				CF66F260ED1ED376AEB540FA /* FeatureHub.swift */,
+				AB12CD34EF56010203040510 /* NotificationAttachmentImage.swift */,
 				F88450EB19681BB960975866 /* FileTransferClient.swift */,
 				C27441175CE91368A1221065 /* FileTransferFraming.swift */,
 				7DBE79967FD928B0AFFB58E2 /* ScrcpyArguments.swift */,
@@ -1028,6 +1034,7 @@
 				5030B887955D716422B0925D /* CompanionHelpersTests.swift in Sources */,
 				FE5E89302F93A56C90DFE608 /* ControlProtocolTests.swift in Sources */,
 				6739D94484A62FF024909648 /* FeatureHubTests.swift in Sources */,
+				AB12CD34EF56010203040513 /* NotificationAttachmentImageTests.swift in Sources */,
 				8219271CACE7AE378D3B84A9 /* FileTransferFramingTests.swift in Sources */,
 				6F1D5021F8F945DDDD0A1E29 /* FixtureBytes.swift in Sources */,
 				8ABBAE4493E7323A8230152B /* IdentityStoreTests.swift in Sources */,
@@ -1089,6 +1096,7 @@
 				55230CA7324B2401961E0BC4 /* DeviceRepository.swift in Sources */,
 				C1DAC3E2C531BC43DC6A3B6B /* DeviceSettings.swift in Sources */,
 				70D78DFE3CF3232944D7FC8C /* FeatureHub.swift in Sources */,
+				AB12CD34EF56010203040511 /* NotificationAttachmentImage.swift in Sources */,
 				41D2708ED4EBD6C787205499 /* FileTransferClient.swift in Sources */,
 				1C4DB61DDCA02BE6434A224C /* FileTransferFraming.swift in Sources */,
 				7AC01AF60996E9F6B5AE309E /* GeneralSettings.swift in Sources */,

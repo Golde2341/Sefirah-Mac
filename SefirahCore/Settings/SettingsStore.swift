@@ -86,4 +86,13 @@ public final class SettingsStore: @unchecked Sendable {
             throw SettingsError.encodingFailed
         }
     }
+
+    /// Removes the per-device settings file, used when a device is forgotten.
+    public func deleteDevice(id: String) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        let url = deviceURL(id)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try FileManager.default.removeItem(at: url)
+    }
 }

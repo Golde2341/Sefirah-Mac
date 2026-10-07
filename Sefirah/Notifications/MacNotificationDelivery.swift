@@ -19,6 +19,7 @@ final class MacNotificationDelivery {
         var deviceID: String
         var appPackage: String
         var appName: String?
+        var attachmentPath: String?
     }
 
     private init() {}
@@ -35,13 +36,32 @@ final class MacNotificationDelivery {
             body: notification.text?.nonEmpty ?? "",
             deviceID: deviceID,
             appPackage: appPackage,
-            appName: notification.appName?.nonEmpty
+            appName: notification.appName?.nonEmpty,
+            attachmentPath: Self.writeAttachment(contactPhoto: notification.largeIcon, appIcon: notification.appIcon)
         )
         guard let data = try? JSONEncoder().encode(payload) else { return }
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("sefirah-notification-\(UUID().uuidString).json")
         guard (try? data.write(to: url)) != nil else { return }
         launch(arguments: ["--deliver", url.path])
+    }
+
+    /// Writes the richest image the phone sent — the contact photo (`largeIcon`) when available,
+    /// otherwise the app icon (`appIcon`) — to a temporary file for the helper to attach to the
+    /// notification, where it renders on the trailing side of the banner. Returns nil when there
+    /// is no usable image. The helper deletes the file after scheduling the notification.
+    private static func writeAttachment(contactPhoto: String, appIcon: String?) -> String? {
+        for candidate in [contactPhoto, appIcon ?? ""] where !candidate.isEmpty {
+            guard let image = NotificationAttachmentImage.decode(candidate) else {
+                log.warning("Dropping notification image with unsupported format")
+                continue
+            }
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("sefirah-notification-attachment-\(UUID().uuidString).\(image.fileExtension)")
+            guard (try? image.data.write(to: url)) != nil else { continue }
+            return url.path
+        }
+        return nil
     }
 
     func remove(notificationKey: String, from deviceID: String) {

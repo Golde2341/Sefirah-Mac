@@ -44,6 +44,7 @@ final class SefirahPhoneApp: NSObject, NSApplicationDelegate, UNUserNotification
         var deviceID: String?
         var appPackage: String?
         var appName: String?
+        var attachmentPath: String?
     }
 
     private func deliver(payloadPath: String) {
@@ -65,8 +66,20 @@ final class SefirahPhoneApp: NSObject, NSApplicationDelegate, UNUserNotification
             if let appName = payload.appName { userInfo["appName"] = appName }
             content.userInfo = userInfo
 
+            // The contact photo / app icon renders on the trailing side of the banner. The system
+            // copies the file into its notification store, so the original is removed afterwards.
+            let attachmentURL = payload.attachmentPath.map { URL(fileURLWithPath: $0) }
+            if let attachmentURL, let attachment = try? UNNotificationAttachment(identifier: "source-image", url: attachmentURL) {
+                content.attachments = [attachment]
+            }
+
             let request = UNNotificationRequest(identifier: payload.identifier, content: content, trigger: nil)
-            UNUserNotificationCenter.current().add(request) { _ in exit(0) }
+            UNUserNotificationCenter.current().add(request) { _ in
+                if let attachmentURL {
+                    try? FileManager.default.removeItem(at: attachmentURL)
+                }
+                exit(0)
+            }
         }
     }
 
@@ -81,7 +94,8 @@ final class SefirahPhoneApp: NSObject, NSApplicationDelegate, UNUserNotification
             body: dictionary["body"] as? String ?? "",
             deviceID: dictionary["deviceID"] as? String,
             appPackage: dictionary["appPackage"] as? String,
-            appName: dictionary["appName"] as? String
+            appName: dictionary["appName"] as? String,
+            attachmentPath: dictionary["attachmentPath"] as? String
         )
     }
 

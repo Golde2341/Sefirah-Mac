@@ -14,6 +14,9 @@
     "%@ wants to pair with this Mac. Confirm the code matches on both devices." : {
 
     },
+    "%@ will be unpaired, and its cached notifications, messages and settings will be removed. You'll need to pair it again to reconnect." : {
+
+    },
     "%@:%lld" : {
       "localizations" : {
         "en" : {
@@ -275,6 +278,15 @@
     "Flexible display (resize with the window)" : {
 
     },
+    "Forget" : {
+
+    },
+    "Forget Device" : {
+
+    },
+    "Forget Device?" : {
+
+    },
     "Forward microphone instead of device audio" : {
 
     },
@@ -516,6 +528,9 @@
 
     },
     "Remove command" : {
+
+    },
+    "Remove this pairing and its cached data" : {
 
     },
     "Reply" : {

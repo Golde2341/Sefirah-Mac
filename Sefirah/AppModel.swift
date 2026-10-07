@@ -242,6 +242,27 @@ final class AppModel: PairingDecider {
         session?.reconnectPairedDevices()
     }
 
+    /// Unpairs a device: stops its mirrors, tells the phone we're unpairing (best effort, only
+    /// when connected), withdraws its delivered macOS notifications, then drops the pairing
+    /// record, cached data and per-device settings. Falls back to another device if this one
+    /// was selected — re-pairing is required to connect again.
+    func forget(_ peer: ConnectedPeer) {
+        stopMirrors(deviceId: peer.id)
+        session?.send(to: peer.id, .pairMessage(PairMessage(pair: false)))
+        session?.disconnect(deviceId: peer.id, forced: true)
+        for notification in (try? hub.notifications(deviceId: peer.id)) ?? [] {
+            macNotifications.remove(notificationKey: notification.notificationKey, from: peer.id)
+        }
+        try? DeviceRepository(database: database).deletePairedDevice(id: peer.id)
+        try? hub.forgetDevice(deviceId: peer.id)
+        try? settings.deleteDevice(id: peer.id)
+        paired.removeAll { $0.id == peer.id }
+        if selectedDeviceID == peer.id {
+            selectedDeviceID = paired.first?.id
+            refreshDevice()
+        }
+    }
+
     private func upsertPaired(_ peer: ConnectedPeer) {
         if let index = paired.firstIndex(where: { $0.id == peer.id }) {
             paired[index] = peer

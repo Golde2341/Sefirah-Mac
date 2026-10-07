@@ -110,6 +110,12 @@ struct DeviceRailView: View {
                 .onChange(of: model.selectedDeviceID) { _, _ in model.refreshDevice() }
             }
         }
+        .contextMenu {
+            if !device.isConnected {
+                Button("Connect") { model.reconnect(device) }
+            }
+            Button("Forget Device", role: .destructive) { model.forget(device) }
+        }
     }
 
     private func mediaCard(_ session: PlaybackInfo, connected: Bool) -> some View {
