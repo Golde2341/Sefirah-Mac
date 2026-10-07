@@ -114,6 +114,7 @@
 		CE96B2A8F7E26FEFD57B672A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 53036A1D009C96610B4BF207 /* Localizable.xcstrings */; };
 		D5A6CDD7FDF1548AA7F1324F /* ClipboardApply.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5FB6EBDDBA354E92A2EF751 /* ClipboardApply.swift */; };
 		D689D281C772E22B037EA11A /* LICENSE in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8F347E0B0D816376046EE31A /* LICENSE */; };
+		D9A43B4A3076190100819346 /* Sefirah.icon in Resources */ = {isa = PBXBuildFile; fileRef = D9A43B493076190100819346 /* Sefirah.icon */; };
 		D9A4FD4A3075D8C5002D0C92 /* MacNotificationDelivery.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A4FD493075D8C5002D0C92 /* MacNotificationDelivery.swift */; };
 		D9A4FD4C3075E20A002D0C92 /* NotificationAppSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9A4FD4B3075E20A002D0C92 /* NotificationAppSelectionView.swift */; };
 		DC92DC6BC8045072D1508408 /* VideoCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76CC599FA52C0B70FF90105 /* VideoCodecTests.swift */; };
@@ -273,7 +274,7 @@
 		89898606CEE007D76C6C056B /* AudioDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDecoder.swift; sourceTree = "<group>"; };
 		8ABBD61EEAE66E453FAF175E /* MirrorTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorTestSupport.swift; sourceTree = "<group>"; };
 		8F347E0B0D816376046EE31A /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
-		8F37C060CACB47C6F88B1220 /* scrcpy-server */ = {isa = PBXFileReference; lastKnownFileType = file; path = "scrcpy-server"; sourceTree = "<group>"; };
+		8F37C060CACB47C6F88B1220 /* scrcpy-server */ = {isa = PBXFileReference; lastKnownFileType = text; path = "scrcpy-server"; sourceTree = "<group>"; };
 		8F511122C1E85427CE0C192B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		91B746078E79B25B2B20679F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9421384EB749698CB8D650CA /* CertificateStash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificateStash.swift; sourceTree = "<group>"; };
@@ -311,6 +312,7 @@
 		CF66F260ED1ED376AEB540FA /* FeatureHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureHub.swift; sourceTree = "<group>"; };
 		D3D20C7A4F8582D70E82DB74 /* NotificationFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationFeedView.swift; sourceTree = "<group>"; };
 		D5E84B49A3C60BF07B474EFB /* ScrcpyDeviceSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrcpyDeviceSelectionTests.swift; sourceTree = "<group>"; };
+		D9A43B493076190100819346 /* Sefirah.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Sefirah.icon; sourceTree = "<group>"; };
 		D9A4FD493075D8C5002D0C92 /* MacNotificationDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacNotificationDelivery.swift; sourceTree = "<group>"; };
 		D9A4FD4B3075E20A002D0C92 /* NotificationAppSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationAppSelectionView.swift; sourceTree = "<group>"; };
 		D9E1610618EC9EB8CD8B2FE4 /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
@@ -626,6 +628,7 @@
 				C374C2574CC0301291132FA5 /* Sefirah */,
 				B1BA8116D83845F118E0E8F6 /* SefirahCore */,
 				12518F9673AA880AF56A2055 /* SefirahCoreTests */,
+				D9A43B493076190100819346 /* Sefirah.icon */,
 				7F00DB167B783F44AE3605A3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -856,6 +859,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6270D2F63EFD306A1680EFEC /* Assets.xcassets in Resources */,
+				D9A43B4A3076190100819346 /* Sefirah.icon in Resources */,
 				CE96B2A8F7E26FEFD57B672A /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1043,7 +1047,8 @@
 		2527912333DC6197B1297F9B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Sefirah;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = Sefirah/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -1266,7 +1271,8 @@
 		D346D21E79A1164824707F23 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Sefirah;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = Sefirah/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
