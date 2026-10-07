@@ -21,6 +21,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     public var openAppOnNotificationClick: Bool
     /// Restart the local adb server (`adb kill-server` + `start-server`) when Sefirah launches.
     public var restartAdbServerOnLaunch: Bool
+    /// Continuously push the Mac clipboard to the phone as it changes.
+    public var syncClipboardToPhone: Bool
 
     public init(
         startupOption: StartupOptions = .inTray,
@@ -36,7 +38,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         verboseMirrorLogs: Bool = false,
         mirrorFallbackToExternal: Bool = false,
         openAppOnNotificationClick: Bool = true,
-        restartAdbServerOnLaunch: Bool = false
+        restartAdbServerOnLaunch: Bool = false,
+        syncClipboardToPhone: Bool = false
     ) {
         self.startupOption = startupOption
         self.theme = theme
@@ -52,6 +55,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.mirrorFallbackToExternal = mirrorFallbackToExternal
         self.openAppOnNotificationClick = openAppOnNotificationClick
         self.restartAdbServerOnLaunch = restartAdbServerOnLaunch
+        self.syncClipboardToPhone = syncClipboardToPhone
     }
 
     /// Tolerant decoding so `general.json` files written before a field existed still load.
@@ -72,6 +76,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         mirrorFallbackToExternal = try c.decodeIfPresent(Bool.self, forKey: .mirrorFallbackToExternal) ?? defaults.mirrorFallbackToExternal
         openAppOnNotificationClick = try c.decodeIfPresent(Bool.self, forKey: .openAppOnNotificationClick) ?? defaults.openAppOnNotificationClick
         restartAdbServerOnLaunch = try c.decodeIfPresent(Bool.self, forKey: .restartAdbServerOnLaunch) ?? defaults.restartAdbServerOnLaunch
+        syncClipboardToPhone = try c.decodeIfPresent(Bool.self, forKey: .syncClipboardToPhone) ?? defaults.syncClipboardToPhone
     }
 }
 

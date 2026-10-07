@@ -39,6 +39,20 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(try store.loadGeneral().restartAdbServerOnLaunch)
     }
 
+    func testClipboardSyncRoundTrip() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = SettingsStore(directory: directory)
+        XCTAssertFalse(try store.loadGeneral().syncClipboardToPhone)
+
+        var updated = try store.loadGeneral()
+        updated.syncClipboardToPhone = true
+        try store.saveGeneral(updated)
+        XCTAssertTrue(try store.loadGeneral().syncClipboardToPhone)
+    }
+
     func testDeviceSettingsClampBatteryThreshold() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")

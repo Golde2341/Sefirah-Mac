@@ -22,6 +22,10 @@ struct SettingsView: View {
                 }
                 TextField("Device name", text: $model.general.localDeviceName)
                 TextField("Received files", text: $model.general.receivedFilesPath)
+                Toggle("Sync Mac clipboard to phone in real time", isOn: $model.general.syncClipboardToPhone)
+                    .onChange(of: model.general.syncClipboardToPhone) { _, _ in
+                        model.clipboardSyncSettingChanged()
+                    }
                 Button("Save") { model.saveGeneral() }
             }
             Section("Notifications") {

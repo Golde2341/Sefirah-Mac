@@ -58,6 +58,9 @@ final class MirrorController {
     var relaunch: (() async -> Void)?
     /// Called once per session on a terminal failure (the fallback-to-external policy lives in `AppModel`).
     var onFailed: ((MirrorError) -> Void)?
+    /// Called after a phone-initiated clipboard write (native-mirror control channel) so `AppModel`'s
+    /// real-time sync can ignore its own echo.
+    var onRemoteClipboardApplied: (() -> Void)?
 
     private let sink: DisplayLayerSink
     private var audioPlayer: AudioPlayer?
@@ -235,6 +238,7 @@ final class MirrorController {
             pasteboard.clearContents()
             pasteboard.setString(text, forType: .string)
             if preferences.showClipboardToast { clipboardBanner = text }
+            onRemoteClipboardApplied?()
         case .clipboardAck:
             break
         case .uhidOutput(let id, let data):

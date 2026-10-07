@@ -47,7 +47,8 @@ UHID keyboard, clipboard autosync, hover forwarding, video (codec, max size, bit
 display id, rotation), audio (Mac / Mac+phone / phone only, Opus/AAC/raw, bit rate, buffer,
 microphone), virtual display (size, flexible resize, unlock commands) and custom `key=value` server
 options. An Advanced section takes custom scrcpy/adb paths (a custom scrcpy uses its own
-scrcpy-server) and can restart the adb server on every app launch. Design notes:
+scrcpy-server) and can restart the adb server on every app launch. A General toggle pushes the Mac
+clipboard to the phone in real time. Design notes:
 [`docs/design/native-mirror.md`](docs/design/native-mirror.md).
 
 Some phones (Xiaomi/HyperOS) silently drop injected touches until *USB debugging (Security

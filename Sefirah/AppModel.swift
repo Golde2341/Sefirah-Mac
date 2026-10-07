@@ -6,6 +6,53 @@ import SwiftUI
 
 private let mirrorLaunchLog = Logger(subsystem: "io.github.madeye.sefirah.mac", category: "scrcpy")
 
+/// Polls the general pasteboard's change count and reports when the Mac's clipboard changed, so
+/// `AppModel` can push it to the phone in real time. Polling `NSPasteboard.changeCount` (rather than
+/// content) is the only dependency-free observation mechanism; reading pasteboard content is deferred
+/// until a change is actually detected. Remote clipboard applies (phone → Mac) call
+/// `notePasteboardWritten()` so their own write isn't echoed straight back to the phone.
+@MainActor
+final class ClipboardSyncMonitor {
+    private var timer: Timer?
+    private var lastHandledChangeCount: Int
+
+    /// Called on the main actor when the Mac clipboard changed and was not written by Sefirah itself.
+    var onChange: (() -> Void)?
+
+    init() {
+        lastHandledChangeCount = NSPasteboard.general.changeCount
+    }
+
+    var isRunning: Bool { timer != nil }
+
+    func start() {
+        guard timer == nil else { return }
+        lastHandledChangeCount = NSPasteboard.general.changeCount
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.poll() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    /// Records the pasteboard revision right after Sefirah itself wrote to it (remote clipboard apply).
+    func notePasteboardWritten() {
+        lastHandledChangeCount = NSPasteboard.general.changeCount
+    }
+
+    private func poll() {
+        let changeCount = NSPasteboard.general.changeCount
+        guard changeCount != lastHandledChangeCount else { return }
+        lastHandledChangeCount = changeCount
+        onChange?()
+    }
+}
+
 @MainActor
 @Observable
 final class AppModel: PairingDecider {
@@ -53,6 +100,7 @@ final class AppModel: PairingDecider {
     private let scrcpyRunner: any ScrcpyRunning = ScrcpyProcessRunner()
     private let commandRunner: any CommandRunning = ProcessCommandRunner()
     private let macNotifications = MacNotificationDelivery.shared
+    private let clipboardMonitor = ClipboardSyncMonitor()
     private var terminateObserver: NSObjectProtocol?
 
     init() {
@@ -170,6 +218,13 @@ final class AppModel: PairingDecider {
 
         if loadedGeneral.restartAdbServerOnLaunch {
             restartAdbServer()
+        }
+
+        clipboardMonitor.onChange = { [weak self] in
+            self?.sendClipboard()
+        }
+        if loadedGeneral.syncClipboardToPhone {
+            clipboardMonitor.start()
         }
     }
 
@@ -595,6 +650,9 @@ final class AppModel: PairingDecider {
         controller.onFailed = { [weak self] error in
             self?.fallbackToExternalIfEnabled(after: error, key: key, package: package, appName: appName)
         }
+        controller.onRemoteClipboardApplied = { [weak self] in
+            self?.clipboardMonitor.notePasteboardWritten()
+        }
         guard let tools = nativeTools else {
             controller.fail(.toolsMissing)
             return
@@ -803,6 +861,17 @@ final class AppModel: PairingDecider {
         }
     }
 
+    /// Called when the "Sync clipboard to phone in real time" toggle changes: persists the setting and
+    /// starts/stops the pasteboard monitor immediately.
+    func clipboardSyncSettingChanged() {
+        saveGeneral()
+        if general.syncClipboardToPhone {
+            clipboardMonitor.start()
+        } else {
+            clipboardMonitor.stop()
+        }
+    }
+
     func sendActionList(to deviceId: String) {
         session?.send(to: deviceId, .actionList(ActionRunner.actionList(from: general.actions)))
     }
@@ -876,6 +945,7 @@ final class AppModel: PairingDecider {
             switch effect {
             case .applyClipboard(let info):
                 ClipboardApply.apply(info)
+                clipboardMonitor.notePasteboardWritten()
             case .receiveFiles(let info):
                 startFileReceive(deviceId: deviceId, info: info)
             case .executeAction(let execution):
@@ -919,6 +989,7 @@ final class AppModel: PairingDecider {
                 if info.isClipboard, let url = urls.first {
                     await MainActor.run {
                         ClipboardApply.applyFile(url, mimeType: info.files.first?.mimeType)
+                        self?.clipboardMonitor.notePasteboardWritten()
                     }
                 }
             } catch {
