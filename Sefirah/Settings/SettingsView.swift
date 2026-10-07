@@ -28,6 +28,21 @@ struct SettingsView: View {
                     }
                 Button("Save") { model.saveGeneral() }
             }
+            Section("Menu bar") {
+                Text("Choose which buttons appear in the menu bar menu.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Toggle("Open apps", isOn: $model.general.menuBarOpenApps)
+                    .onChange(of: model.general.menuBarOpenApps) { model.saveGeneral() }
+                Toggle("Screen mirror", isOn: $model.general.menuBarScreenMirror)
+                    .onChange(of: model.general.menuBarScreenMirror) { model.saveGeneral() }
+                Toggle("Do Not Disturb", isOn: $model.general.menuBarDnd)
+                    .onChange(of: model.general.menuBarDnd) { model.saveGeneral() }
+                Toggle("Ringer modes", isOn: $model.general.menuBarRinger)
+                    .onChange(of: model.general.menuBarRinger) { model.saveGeneral() }
+                Toggle("Send clipboard", isOn: $model.general.menuBarSendClipboard)
+                    .onChange(of: model.general.menuBarSendClipboard) { model.saveGeneral() }
+            }
             Section("Notifications") {
                 Toggle("Open app when clicking notification", isOn: $model.general.openAppOnNotificationClick)
                     .onChange(of: model.general.openAppOnNotificationClick) {

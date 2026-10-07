@@ -137,6 +137,9 @@
     "CAPS" : {
 
     },
+    "Choose which buttons appear in the menu bar menu." : {
+
+    },
     "Choose…" : {
 
     },
@@ -227,6 +230,9 @@
     "DND On" : {
 
     },
+    "Do Not Disturb" : {
+
+    },
     "Done" : {
 
     },
@@ -306,6 +312,9 @@
 
     },
     "Max size (px, empty = native)" : {
+
+    },
+    "Menu bar" : {
 
     },
     "Menu bar only" : {
@@ -479,6 +488,9 @@
     "Ringer" : {
 
     },
+    "Ringer modes" : {
+
+    },
     "Rotate Device" : {
 
     },
@@ -498,6 +510,9 @@
 
     },
     "Scan QR Code" : {
+
+    },
+    "Screen mirror" : {
 
     },
     "Screen mirroring" : {
@@ -528,6 +543,9 @@
 
     },
     "Send" : {
+
+    },
+    "Send clipboard" : {
 
     },
     "Session" : {
@@ -564,6 +582,9 @@
 
     },
     "Stop find phone" : {
+
+    },
+    "Stop mirroring" : {
 
     },
     "Stop sound" : {

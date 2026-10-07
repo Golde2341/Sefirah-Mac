@@ -23,6 +23,16 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     public var restartAdbServerOnLaunch: Bool
     /// Continuously push the Mac clipboard to the phone as it changes.
     public var syncClipboardToPhone: Bool
+    /// Menu bar panel: show the Open apps submenu.
+    public var menuBarOpenApps: Bool
+    /// Menu bar panel: show the Screen mirror button.
+    public var menuBarScreenMirror: Bool
+    /// Menu bar panel: show the Do Not Disturb button.
+    public var menuBarDnd: Bool
+    /// Menu bar panel: show the Ringer mode picker.
+    public var menuBarRinger: Bool
+    /// Menu bar panel: show the Send clipboard button.
+    public var menuBarSendClipboard: Bool
 
     public init(
         startupOption: StartupOptions = .inTray,
@@ -39,7 +49,12 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         mirrorFallbackToExternal: Bool = false,
         openAppOnNotificationClick: Bool = true,
         restartAdbServerOnLaunch: Bool = false,
-        syncClipboardToPhone: Bool = false
+        syncClipboardToPhone: Bool = false,
+        menuBarOpenApps: Bool = true,
+        menuBarScreenMirror: Bool = true,
+        menuBarDnd: Bool = true,
+        menuBarRinger: Bool = true,
+        menuBarSendClipboard: Bool = true
     ) {
         self.startupOption = startupOption
         self.theme = theme
@@ -56,6 +71,11 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.openAppOnNotificationClick = openAppOnNotificationClick
         self.restartAdbServerOnLaunch = restartAdbServerOnLaunch
         self.syncClipboardToPhone = syncClipboardToPhone
+        self.menuBarOpenApps = menuBarOpenApps
+        self.menuBarScreenMirror = menuBarScreenMirror
+        self.menuBarDnd = menuBarDnd
+        self.menuBarRinger = menuBarRinger
+        self.menuBarSendClipboard = menuBarSendClipboard
     }
 
     /// Tolerant decoding so `general.json` files written before a field existed still load.
@@ -77,6 +97,11 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         openAppOnNotificationClick = try c.decodeIfPresent(Bool.self, forKey: .openAppOnNotificationClick) ?? defaults.openAppOnNotificationClick
         restartAdbServerOnLaunch = try c.decodeIfPresent(Bool.self, forKey: .restartAdbServerOnLaunch) ?? defaults.restartAdbServerOnLaunch
         syncClipboardToPhone = try c.decodeIfPresent(Bool.self, forKey: .syncClipboardToPhone) ?? defaults.syncClipboardToPhone
+        menuBarOpenApps = try c.decodeIfPresent(Bool.self, forKey: .menuBarOpenApps) ?? defaults.menuBarOpenApps
+        menuBarScreenMirror = try c.decodeIfPresent(Bool.self, forKey: .menuBarScreenMirror) ?? defaults.menuBarScreenMirror
+        menuBarDnd = try c.decodeIfPresent(Bool.self, forKey: .menuBarDnd) ?? defaults.menuBarDnd
+        menuBarRinger = try c.decodeIfPresent(Bool.self, forKey: .menuBarRinger) ?? defaults.menuBarRinger
+        menuBarSendClipboard = try c.decodeIfPresent(Bool.self, forKey: .menuBarSendClipboard) ?? defaults.menuBarSendClipboard
     }
 }
 
