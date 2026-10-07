@@ -72,10 +72,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag {
-            NSApp.setActivationPolicy(.regular)
-            NSApp.windows.first { $0.identifier?.rawValue == "main" }?.makeKeyAndOrderFront(nil)
-        }
-        return true
+        // Sefirah lives in the menu bar. Activation/reopen events — including tapping a
+        // mirrored phone notification — must not reopen the main window. Returning false
+        // suppresses AppKit's and SwiftUI's default window restoration; use the menu bar
+        // item's Show Window instead.
+        false
     }
 }

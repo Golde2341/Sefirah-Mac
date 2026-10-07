@@ -192,22 +192,32 @@ final class AppModel: PairingDecider {
         refreshDevice()
 
         macNotifications.onNotificationClick = { [weak self] deviceID, appPackage, appName in
-            guard let self else { return }
-            if self.general.openAppOnNotificationClick {
-                if self.general.mirrorBackend == .native {
-                    self.showMainWindow = true
-                    NSApp.setActivationPolicy(.regular)
-                    NSApp.activate(ignoringOtherApps: true)
-                    if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }) {
-                        window.makeKeyAndOrderFront(nil)
-                    }
+            guard let self, self.general.openAppOnNotificationClick else { return }
+
+            if self.general.mirrorBackend == .native {
+                // The native mirror renders in the main window's Mirror tab, so it must come forward.
+                self.showMainWindow = true
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
+                if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "main" }) {
+                    window.makeKeyAndOrderFront(nil)
                 }
-                if self.selectedDeviceID != deviceID {
-                    self.selectedDeviceID = deviceID
-                    self.refreshDevice()
+            } else {
+                // External scrcpy opens its own window. Tapping the banner activates Sefirah,
+                // which can raise the main window; dismiss it and return to menu-bar mode so
+                // the tap shows scrcpy only.
+                self.dismissMainWindow()
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    self?.dismissMainWindow()
                 }
-                self.startMirror(package: appPackage, appName: appName)
             }
+
+            if self.selectedDeviceID != deviceID {
+                self.selectedDeviceID = deviceID
+                self.refreshDevice()
+            }
+            self.startMirror(package: appPackage, appName: appName)
         }
 
         let runner = scrcpyRunner
@@ -1001,6 +1011,13 @@ final class AppModel: PairingDecider {
                 execute(execution)
             }
         }
+    }
+
+    /// Hides the main window and returns the app to menu-bar-only mode. Used so external
+    /// scrcpy notification taps never leave the Sefirah window on screen.
+    private func dismissMainWindow() {
+        NSApp.windows.first { $0.identifier?.rawValue == "main" }?.orderOut(nil)
+        NSApp.setActivationPolicy(.accessory)
     }
 
     private func forwardNotification(_ message: SocketMessage, from deviceID: String) {
