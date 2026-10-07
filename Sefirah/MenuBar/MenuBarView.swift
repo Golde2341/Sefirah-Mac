@@ -1,4 +1,5 @@
 import AppKit
+import SefirahCore
 import SwiftUI
 
 struct MenuBarView: View {
@@ -18,19 +19,30 @@ struct MenuBarView: View {
             }
             Divider()
             Menu {
-                if model.recentlyOpenedApps.isEmpty {
-                    Text("No recently opened apps")
+                let pinned = model.sortedApps.filter(\.pinned)
+                let recent = model.recentlyOpenedApps.filter { !$0.pinned }
+                if pinned.isEmpty && recent.isEmpty {
+                    Text("No apps to open")
                 } else {
-                    ForEach(model.recentlyOpenedApps, id: \.appKey) { app in
-                        Button(app.appName) {
-                            model.startMirror(package: app.packageName, appName: app.appName)
+                    if !pinned.isEmpty {
+                        Section("Pinned") {
+                            ForEach(pinned, id: \.appKey) { app in
+                                openButton(for: app)
+                            }
+                        }
+                    }
+                    if !recent.isEmpty {
+                        Section("Recent") {
+                            ForEach(recent, id: \.appKey) { app in
+                                openButton(for: app)
+                            }
                         }
                     }
                 }
             } label: {
-                Label("Recently Opened Apps", systemImage: "clock")
+                Label("Open apps", systemImage: "square.grid.2x2")
             }
-            .disabled(model.recentlyOpenedApps.isEmpty)
+            .disabled(model.recentlyOpenedApps.isEmpty && model.apps.allSatisfy { !$0.pinned })
 
             Button("Show Window") {
                 NSApp.setActivationPolicy(.regular)
@@ -47,5 +59,11 @@ struct MenuBarView: View {
         }
         .padding(8)
         .frame(minWidth: 220)
+    }
+
+    private func openButton(for app: ApplicationRecord) -> some View {
+        Button(app.appName) {
+            model.startMirror(package: app.packageName, appName: app.appName)
+        }
     }
 }

@@ -353,6 +353,9 @@
     "No apps match \"%@\"." : {
 
     },
+    "No apps to open" : {
+
+    },
     "No audio" : {
 
     },
@@ -374,9 +377,6 @@
     "No phone connected. Pair a device from Settings or complete onboarding." : {
 
     },
-    "No recently opened apps" : {
-
-    },
     "No unlock commands configured." : {
 
     },
@@ -393,6 +393,9 @@
 
     },
     "Open app when clicking notification" : {
+
+    },
+    "Open apps" : {
 
     },
     "Open apps on a virtual display" : {
@@ -431,6 +434,9 @@
     "Pin %@" : {
 
     },
+    "Pinned" : {
+
+    },
     "Ports" : {
 
     },
@@ -446,7 +452,7 @@
     "Received files" : {
 
     },
-    "Recently Opened Apps" : {
+    "Recent" : {
 
     },
     "Refresh" : {
