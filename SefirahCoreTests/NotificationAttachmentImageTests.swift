@@ -90,4 +90,41 @@ final class NotificationAttachmentImageTests: XCTestCase {
         let outside = try XCTUnwrap(rep.colorAt(x: 2, y: 2))
         XCTAssertLessThan(outside.alphaComponent, 0.05)
     }
+
+    /// Contact photos become circular avatars with a small round app-icon badge in the bottom-right
+    /// corner (the WhatsApp-desktop look).
+    func testContactPhotoRenderIsCircularWithAppBadge() throws {
+        let photo = try imagePNG(size: 128) { rect in
+            NSColor.systemIndigo.setFill()
+            rect.fill()
+        }
+        let appIcon = try imagePNG(size: 128) { rect in
+            NSColor.systemGreen.setFill()
+            rect.fill()
+        }
+        let rendered = try XCTUnwrap(NotificationAttachmentImage.decodeAsContactPhoto(
+            photo.base64EncodedString(),
+            appIcon: appIcon.base64EncodedString(),
+            size: 256
+        ))
+        let rep = try XCTUnwrap(NSBitmapImageRep(data: rendered))
+
+        // Outside the avatar circle.
+        let corner = try XCTUnwrap(rep.colorAt(x: 2, y: 2))
+        XCTAssertLessThan(corner.alphaComponent, 0.05)
+
+        // Photo visible in the middle.
+        let center = try XCTUnwrap(rep.colorAt(x: 128, y: 128))
+        XCTAssertGreaterThan(center.alphaComponent, 0.95)
+        XCTAssertGreaterThan(center.blueComponent, center.greenComponent)
+
+        // Badge in the visual bottom-right corner.
+        let badge = try XCTUnwrap(rep.colorAt(x: 218, y: 218))
+        XCTAssertGreaterThan(badge.alphaComponent, 0.9)
+        XCTAssertGreaterThan(badge.greenComponent, badge.redComponent)
+    }
+
+    func testContactPhotoRejectsUnreadablePhoto() {
+        XCTAssertNil(NotificationAttachmentImage.decodeAsContactPhoto("nope", appIcon: nil))
+    }
 }

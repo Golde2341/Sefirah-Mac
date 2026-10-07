@@ -48,22 +48,29 @@ final class MacNotificationDelivery {
 
     /// Writes the richest image the phone sent — the contact photo (`largeIcon`) when available,
     /// otherwise the app icon (`appIcon`) — to a temporary file for the helper to attach to the
-    /// notification, where it renders on the trailing side of the banner. The artwork is rendered
-    /// as an iOS-style squircle so icons look consistent across phones (whose launchers bake in
-    /// circles, rounded squares, etc.). Returns nil when there is no usable image. The helper
-    /// deletes the file after scheduling the notification.
+    /// notification, where it renders on the trailing side of the banner. Contact photos become
+    /// circular avatars badged with the app icon (like WhatsApp's desktop notifications); app
+    /// icons are rendered in the iOS squircle shape. Returns nil when there is no usable image.
+    /// The helper deletes the file after scheduling the notification.
     private static func writeAttachment(contactPhoto: String, appIcon: String?) -> String? {
-        for candidate in [contactPhoto, appIcon ?? ""] where !candidate.isEmpty {
-            guard let png = NotificationAttachmentImage.decodeAsAppIcon(candidate) else {
-                log.warning("Dropping notification image with unsupported format")
-                continue
-            }
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("sefirah-notification-attachment-\(UUID().uuidString).png")
-            guard (try? png.write(to: url)) != nil else { continue }
-            return url.path
+        let badge = appIcon?.nonEmpty
+        var rendered: Data?
+        if !contactPhoto.isEmpty {
+            rendered = NotificationAttachmentImage.decodeAsContactPhoto(contactPhoto, appIcon: badge)
         }
-        return nil
+        if rendered == nil, let badge {
+            rendered = NotificationAttachmentImage.decodeAsAppIcon(badge)
+        }
+        guard let rendered else {
+            if !contactPhoto.isEmpty || badge != nil {
+                log.warning("Dropping notification image with unsupported format")
+            }
+            return nil
+        }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-notification-attachment-\(UUID().uuidString).png")
+        guard (try? rendered.write(to: url)) != nil else { return nil }
+        return url.path
     }
 
     func remove(notificationKey: String, from deviceID: String) {
