@@ -256,6 +256,14 @@ public final class FeatureHub: @unchecked Sendable {
         lock.unlock()
     }
 
+    /// Removes one mirrored notification from the feed (local only; the phone keeps its own).
+    public func removeNotification(deviceId: String, notificationKey: String) throws {
+        let key = "\(deviceId):\(notificationKey)"
+        try database.dbQueue.write { db in
+            _ = try NotificationRecord.deleteOne(db, key: key)
+        }
+    }
+
     public func notifications(deviceId: String) throws -> [NotificationSnapshot] {
         try database.dbQueue.read { db in
             let rows = try NotificationRecord

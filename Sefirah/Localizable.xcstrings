@@ -482,9 +482,6 @@
     "On the phone, turn on Message sync for this Mac, grant SMS permission, then reconnect." : {
 
     },
-    "Open App" : {
-
-    },
     "Open app when clicking notification" : {
 
     },
@@ -567,6 +564,9 @@
 
     },
     "Remove command" : {
+
+    },
+    "Remove notification" : {
 
     },
     "Remove this pairing and its cached data" : {

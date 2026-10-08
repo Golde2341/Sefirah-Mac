@@ -277,6 +277,18 @@ final class FeatureHubTests: XCTestCase {
         XCTAssertEqual(hub.liveState(deviceId: "phone").playback.map(\.trackTitle), ["A", "B"])
     }
 
+    func testRemoveSingleNotification() throws {
+        let hub = try makeHub()
+        for key in ["n1", "n2"] {
+            _ = try hub.handle(deviceId: "phone", .notificationInfo(NotificationInfo(
+                notificationKey: key, infoType: .new, timestampMillis: 1,
+                appPackage: "com.chat", appName: "Chat", title: key, text: "hello"
+            )))
+        }
+        try hub.removeNotification(deviceId: "phone", notificationKey: "n1")
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").map(\.notificationKey), ["n2"])
+    }
+
     func testPlaybackTransportUpdatesKeepMetadata() throws {
         let hub = try makeHub()
         _ = try hub.handle(deviceId: "phone", .playbackInfo(PlaybackInfo(
