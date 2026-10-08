@@ -17,6 +17,9 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
+            if let session = model.live.playback.first {
+                mediaChip(session)
+            }
             if let note = model.notifications.first {
                 notificationChip(note)
             }
@@ -44,7 +47,7 @@ struct MenuBarView: View {
             }
         }
         .padding(10)
-        .frame(minWidth: 240)
+        .frame(minWidth: 280)
     }
 
     // MARK: - Header
@@ -126,6 +129,142 @@ struct MenuBarView: View {
     private var statusText: String {
         guard let device = model.selectedDevice else { return "No device" }
         return device.isConnected ? "Connected" : "Disconnected"
+    }
+
+    /// Android 15-style player card, glass-ified with materials: album art backdrop, source chip,
+    /// big play button and a transport row. Shown while playing, and up to 10 minutes after pausing
+    /// (older sessions are pruned; sessions from before the current connection are cleared).
+    private func mediaChip(_ session: PlaybackInfo) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Spacer(minLength: 0)
+                    HStack(spacing: 3) {
+                        Image(systemName: "iphone")
+                            .font(.system(size: 9, weight: .semibold))
+                        Text(model.selectedDevice?.name ?? "This phone")
+                            .font(.system(size: 10, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(.ultraThinMaterial, in: Capsule())
+                }
+
+                Spacer(minLength: 0)
+
+                HStack(alignment: .center, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(session.trackTitle ?? "Playback")
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                        Text(session.artist ?? session.appName ?? session.source)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
+
+                    Spacer(minLength: 0)
+
+                    glassCircleButton(
+                        session.isPlaying ? "pause.fill" : "play.fill",
+                        diameter: 38,
+                        fontSize: 15
+                    ) {
+                        model.sendMediaAction(session.isPlaying ? .pause : .play, source: session.source)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    glassCircleButton("backward.fill", diameter: 26, fontSize: 10) {
+                        model.sendMediaAction(.previous, source: session.source)
+                    }
+                    if let max = session.maxSeekTime, max > 0 {
+                        Slider(
+                            value: Binding(
+                                get: { min(session.position ?? 0, max) },
+                                set: { model.sendMediaAction(.seek, source: session.source, value: $0) }
+                            ),
+                            in: (session.minSeekTime ?? 0)...max
+                        )
+                        .controlSize(.mini)
+                        .tint(.white)
+                        .disabled(session.canSeek == false)
+                    } else {
+                        Spacer()
+                    }
+                    glassCircleButton("forward.fill", diameter: 26, fontSize: 10) {
+                        model.sendMediaAction(.next, source: session.source)
+                    }
+                }
+        }
+        .padding(10)
+        // The art is a background so it can't stretch the card layout; the content defines the size.
+        .frame(height: 122)
+        .frame(maxWidth: .infinity)
+        .background { mediaBackdrop(session) }
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+        }
+    }
+
+    /// Album art fills the card under a glass wash; falls back to plain glass.
+    @ViewBuilder
+    private func mediaBackdrop(_ session: PlaybackInfo) -> some View {
+        if let data = artworkData(session.thumbnail),
+           let image = IconImageCache.image(for: data, key: "menu-media:\(session.source)")
+        {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fill)
+                .overlay {
+                    LinearGradient(
+                        colors: [.black.opacity(0.65), .black.opacity(0.15)],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                }
+                .overlay {
+                    Rectangle().fill(.ultraThinMaterial).opacity(0.25)
+                }
+        } else {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 34))
+                        .foregroundStyle(.secondary.opacity(0.6))
+                }
+        }
+    }
+
+    private func glassCircleButton(
+        _ symbol: String,
+        diameter: CGFloat,
+        fontSize: CGFloat,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: fontSize, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: diameter, height: diameter)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay {
+                    Circle().strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func artworkData(_ thumbnail: String?) -> Data? {
+        guard let thumbnail, !thumbnail.isEmpty else { return nil }
+        return Data(base64Encoded: thumbnail, options: [.ignoreUnknownCharacters])
     }
 
     private func notificationChip(_ note: NotificationSnapshot) -> some View {

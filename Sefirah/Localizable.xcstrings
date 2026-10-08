@@ -164,6 +164,12 @@
     "Choose…" : {
 
     },
+    "Clear All" : {
+
+    },
+    "Clear the mirrored notification feed" : {
+
+    },
     "Clipboard" : {
 
     },
@@ -321,9 +327,6 @@
 
     },
     "Hidden apps" : {
-
-    },
-    "Hidden apps (%lld)" : {
 
     },
     "Hide" : {

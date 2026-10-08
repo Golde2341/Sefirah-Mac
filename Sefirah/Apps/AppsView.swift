@@ -184,7 +184,7 @@ private struct AppIconView: View {
     var size: CGFloat
 
     var body: some View {
-        if let image = AppIconCache.image(for: app) {
+        if let image = IconImageCache.image(for: app.icon, key: app.appKey) {
             Image(nsImage: image)
                 .resizable()
                 .interpolation(.high)
@@ -199,20 +199,6 @@ private struct AppIconView: View {
                         .foregroundStyle(.secondary)
                 }
         }
-    }
-}
-
-@MainActor
-private enum AppIconCache {
-    private static let images = NSCache<NSString, NSImage>()
-
-    static func image(for app: ApplicationRecord) -> NSImage? {
-        guard let data = app.icon else { return nil }
-        let key = "\(app.appKey)#\(data.count)#\(data.hashValue)" as NSString
-        if let cached = images.object(forKey: key) { return cached }
-        guard let image = NSImage(data: data) else { return nil }
-        images.setObject(image, forKey: key)
-        return image
     }
 }
 

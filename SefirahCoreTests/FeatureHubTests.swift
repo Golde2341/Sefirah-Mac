@@ -247,6 +247,90 @@ final class FeatureHubTests: XCTestCase {
         XCTAssertEqual(reloaded.appName, "X Renamed")
     }
 
+    func testNotificationStoresArtwork() throws {
+        let hub = try makeHub()
+        let png = try sampleIconPNG()
+        _ = try hub.handle(deviceId: "phone", .notificationInfo(NotificationInfo(
+            notificationKey: "n1", infoType: .new, timestampMillis: 1,
+            appPackage: "com.chat", appName: "Chat", title: "Ada", text: "hi",
+            appIcon: png.base64EncodedString()
+        )))
+        let note = try XCTUnwrap(hub.notifications(deviceId: "phone").first)
+        let icon = try XCTUnwrap(note.icon)
+        XCTAssertNotNil(NSImage(data: icon))
+    }
+
+    func testPlaybackOrderPutsMostRecentFirst() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .playbackInfo(
+            PlaybackInfo(infoType: .playbackInfo, source: "a", trackTitle: "A", isPlaying: true)
+        ))
+        _ = try hub.handle(deviceId: "phone", .playbackInfo(
+            PlaybackInfo(infoType: .playbackInfo, source: "b", trackTitle: "B", isPlaying: true)
+        ))
+        XCTAssertEqual(hub.liveState(deviceId: "phone").playback.map(\.trackTitle), ["B", "A"])
+
+        // The most recently played session leads.
+        _ = try hub.handle(deviceId: "phone", .playbackInfo(
+            PlaybackInfo(infoType: .playbackInfo, source: "a", trackTitle: "A", isPlaying: true)
+        ))
+        XCTAssertEqual(hub.liveState(deviceId: "phone").playback.map(\.trackTitle), ["A", "B"])
+    }
+
+    func testPlaybackTransportUpdatesKeepMetadata() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .playbackInfo(PlaybackInfo(
+            infoType: .playbackInfo, source: "spotify", trackTitle: "Song", artist: "Artist",
+            isPlaying: false, position: 109_136, maxSeekTime: 329_341, appName: "Spotify",
+            volume: 40, canSeek: true
+        )))
+        // A transport-only update (just the play state) must not wipe the card.
+        _ = try hub.handle(deviceId: "phone", .playbackInfo(PlaybackInfo(
+            infoType: .playbackInfo, source: "spotify", isPlaying: true
+        )))
+        let session = try XCTUnwrap(hub.liveState(deviceId: "phone").playback.first)
+        XCTAssertTrue(session.isPlaying)
+        XCTAssertEqual(session.trackTitle, "Song")
+        XCTAssertEqual(session.artist, "Artist")
+        XCTAssertEqual(session.appName, "Spotify")
+        XCTAssertEqual(session.maxSeekTime, 329_341)
+        XCTAssertEqual(session.volume, 40)
+        XCTAssertEqual(session.canSeek, true)
+    }
+
+    func testPausedSessionsPruneAfterMaxAge() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .playbackInfo(
+            PlaybackInfo(infoType: .playbackInfo, source: "a", trackTitle: "A", isPlaying: true)
+        ))
+        _ = try hub.handle(deviceId: "phone", .playbackInfo(
+            PlaybackInfo(infoType: .playbackInfo, source: "a", isPlaying: false)
+        ))
+        XCTAssertEqual(hub.liveState(deviceId: "phone").playback.count, 1)
+
+        XCTAssertFalse(hub.prunePausedPlayback(deviceId: "phone", maxAge: 600))
+        XCTAssertTrue(hub.prunePausedPlayback(deviceId: "phone", maxAge: 600, now: Date().addingTimeInterval(601)))
+        XCTAssertTrue(hub.liveState(deviceId: "phone").playback.isEmpty)
+    }
+
+    func testResetPlaybackStateClearsSessions() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .playbackInfo(
+            PlaybackInfo(infoType: .playbackInfo, source: "a", trackTitle: "A", isPlaying: true)
+        ))
+        hub.resetPlaybackState(deviceId: "phone")
+        XCTAssertTrue(hub.liveState(deviceId: "phone").playback.isEmpty)
+    }
+
+    func testTransportKeyCodes() {
+        XCTAssertEqual(MediaKeyEvent.keyCode(for: .play), 126)
+        XCTAssertEqual(MediaKeyEvent.keyCode(for: .pause), 127)
+        XCTAssertEqual(MediaKeyEvent.keyCode(for: .next), 87)
+        XCTAssertEqual(MediaKeyEvent.keyCode(for: .previous), 88)
+        XCTAssertNil(MediaKeyEvent.keyCode(for: .seek))
+        XCTAssertNil(MediaKeyEvent.keyCode(for: .volumeUpdate))
+    }
+
     private func sampleIconPNG() throws -> Data {
         let size = 64
         let rep = try XCTUnwrap(NSBitmapImageRep(

@@ -66,6 +66,7 @@
 		6202A2E420E817CB002646F0 /* DeviceRailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 958E704F393C58144C475E60 /* DeviceRailView.swift */; };
 		6270D2F63EFD306A1680EFEC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91B746078E79B25B2B20679F /* Assets.xcassets */; };
 		6328A3D11540A20EFDED48F0 /* AppsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E61BFB063E1E3A6B1B877CC3 /* AppsView.swift */; };
+		AB12CD34EF56010203040531 /* IconImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF56010203040530 /* IconImageCache.swift */; };
 		643D0B086082C9F2DB1F8619 /* NotificationFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D20C7A4F8582D70E82DB74 /* NotificationFeedView.swift */; };
 		6739D94484A62FF024909648 /* FeatureHubTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1114E47357A809096A3251C /* FeatureHubTests.swift */; };
 		AB12CD34EF56010203040513 /* NotificationAttachmentImageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF56010203040512 /* NotificationAttachmentImageTests.swift */; };
@@ -357,6 +358,7 @@
 		E4FFA8693F4E65E946375767 /* ControlMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlMessage.swift; sourceTree = "<group>"; };
 		E527B9FA756EFE0B7B5B72E1 /* SampleBufferFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleBufferFactory.swift; sourceTree = "<group>"; };
 		E61BFB063E1E3A6B1B877CC3 /* AppsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppsView.swift; sourceTree = "<group>"; };
+		AB12CD34EF56010203040530 /* IconImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Support/IconImageCache.swift"; sourceTree = "<group>"; };
 		E6CA594975B0264C8311DAA4 /* ServerLauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLauncherTests.swift; sourceTree = "<group>"; };
 		E896A9F06FBFB2D2D7DDD385 /* NotificationAppSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationAppSelectionView.swift; sourceTree = "<group>"; };
 		E8D1855F2398A0297975C310 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
@@ -698,6 +700,7 @@
 			isa = PBXGroup;
 			children = (
 				78ECEAC0C2EF37B59E9D3CC1 /* AppModel.swift */,
+				AB12CD34EF56010203040530 /* IconImageCache.swift */,
 				91B746078E79B25B2B20679F /* Assets.xcassets */,
 				A08B330127FFBA32FB2E9D49 /* ContentView.swift */,
 				8F511122C1E85427CE0C192B /* Info.plist */,
@@ -1145,6 +1148,7 @@
 			files = (
 				2586D0AE3BE2D48FBA72C314 /* AppModel.swift in Sources */,
 				6328A3D11540A20EFDED48F0 /* AppsView.swift in Sources */,
+				AB12CD34EF56010203040531 /* IconImageCache.swift in Sources */,
 				4A2CC096D829A19C991EFD37 /* CallOverlayView.swift in Sources */,
 				4F3821E2164E0B1C89549066 /* CallsView.swift in Sources */,
 				90FF1B10114E63DB89B4F360 /* ContentView.swift in Sources */,

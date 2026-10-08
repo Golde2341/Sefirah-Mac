@@ -313,6 +313,32 @@ public struct PlaybackInfo: Codable, Sendable, Equatable {
         case playbackRate, position, maxSeekTime, minSeekTime, thumbnail, appName, volume
         case canPlay, canPause, canGoNext, canGoPrevious, canSeek
     }
+
+    /// Transport updates from the phone (play/pause/seek) can arrive with only the play state.
+    /// Fill any missing field from the previous snapshot so the UI doesn't lose the track,
+    /// artwork, seekbar or volume mid-session.
+    public func merging(_ previous: PlaybackInfo) -> PlaybackInfo {
+        var merged = self
+        let isTransportOnlyUpdate = trackTitle == nil && artist == nil && appName == nil
+            && thumbnail == nil && maxSeekTime == nil
+        if merged.trackTitle == nil { merged.trackTitle = previous.trackTitle }
+        if merged.artist == nil { merged.artist = previous.artist }
+        if merged.appName == nil { merged.appName = previous.appName }
+        if merged.thumbnail == nil { merged.thumbnail = previous.thumbnail }
+        if merged.maxSeekTime == nil { merged.maxSeekTime = previous.maxSeekTime }
+        if merged.minSeekTime == nil { merged.minSeekTime = previous.minSeekTime }
+        if merged.position == nil { merged.position = previous.position }
+        if merged.playbackRate == nil { merged.playbackRate = previous.playbackRate }
+        if merged.isShuffleActive == nil { merged.isShuffleActive = previous.isShuffleActive }
+        if merged.repeatMode == nil { merged.repeatMode = previous.repeatMode }
+        if merged.canPlay == nil { merged.canPlay = previous.canPlay }
+        if merged.canPause == nil { merged.canPause = previous.canPause }
+        if merged.canGoNext == nil { merged.canGoNext = previous.canGoNext }
+        if merged.canGoPrevious == nil { merged.canGoPrevious = previous.canGoPrevious }
+        if merged.canSeek == nil { merged.canSeek = previous.canSeek }
+        if isTransportOnlyUpdate { merged.volume = previous.volume }
+        return merged
+    }
 }
 
 public struct MediaAction: Codable, Sendable, Equatable {

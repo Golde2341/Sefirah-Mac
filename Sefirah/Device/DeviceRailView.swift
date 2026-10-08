@@ -119,12 +119,42 @@ struct DeviceRailView: View {
     }
 
     private func mediaCard(_ session: PlaybackInfo, connected: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let app = session.appName, !app.isEmpty {
-                Text(app).font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                mediaArtwork(session)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.trackTitle ?? "Playback")
+                        .font(.headline)
+                        .lineLimit(2)
+                    if let artist = session.artist, !artist.isEmpty {
+                        Text(artist).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    if let app = session.appName, !app.isEmpty {
+                        Text(app).font(.caption).foregroundStyle(.tertiary).lineLimit(1)
+                    }
+                }
             }
-            Text(session.trackTitle ?? "Playback").font(.headline)
-            Text(session.artist ?? session.source).foregroundStyle(.secondary)
+
+            if let max = session.maxSeekTime, max > 0 {
+                VStack(spacing: 2) {
+                    Slider(
+                        value: Binding(
+                            get: { min(session.position ?? 0, max) },
+                            set: { model.sendMediaAction(.seek, source: session.source, value: $0) }
+                        ),
+                        in: (session.minSeekTime ?? 0)...max
+                    )
+                    .disabled(!connected || session.canSeek == false)
+                    HStack {
+                        Text(timeText(min(session.position ?? 0, max)))
+                        Spacer()
+                        Text(timeText(max))
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                }
+            }
+
             HStack {
                 if session.canGoPrevious != false {
                     Button {
@@ -150,26 +180,44 @@ struct DeviceRailView: View {
                 }
             }
             .buttonStyle(.borderless)
-            StreamVolumeRow(
-                title: "Media volume",
-                type: nil,
-                level: session.volume,
-                enabled: connected
-            ) { model.sendMediaAction(.volumeUpdate, source: session.source, value: Double($0)) }
-            if session.canSeek == true, let max = session.maxSeekTime, max > 0 {
-                Slider(
-                    value: Binding(
-                        get: { session.position ?? 0 },
-                        set: { model.sendMediaAction(.seek, source: session.source, value: $0) }
-                    ),
-                    in: (session.minSeekTime ?? 0)...max
-                )
-                .disabled(!connected)
-            }
         }
         .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// Album art from the phone, with a music-note placeholder when the session has none.
+    @ViewBuilder
+    private func mediaArtwork(_ session: PlaybackInfo) -> some View {
+        if let data = artworkData(session.thumbnail),
+           let image = IconImageCache.image(for: data, key: "media:\(session.source)")
+        {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .frame(width: 76, height: 76)
+        } else {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.quaternary)
+                .frame(width: 76, height: 76)
+                .overlay {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.secondary)
+                }
+        }
+    }
+
+    private func artworkData(_ thumbnail: String?) -> Data? {
+        guard let thumbnail, !thumbnail.isEmpty else { return nil }
+        return Data(base64Encoded: thumbnail, options: [.ignoreUnknownCharacters])
+    }
+
+    /// The phone reports positions and durations in milliseconds.
+    private func timeText(_ milliseconds: Double) -> String {
+        let total = Int((milliseconds / 1000).rounded())
+        return String(format: "%d:%02d", total / 60, total % 60)
     }
 }
 

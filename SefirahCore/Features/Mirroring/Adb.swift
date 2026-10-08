@@ -255,6 +255,21 @@ public enum CompanionWake {
     ]
 }
 
+/// Android key codes for the media transport controls. Sent over adb when the phone is
+/// reachable, since the companion app cannot dispatch media sessions with the screen off.
+public enum MediaKeyEvent {
+    public static func keyCode(for action: MediaActionType) -> Int? {
+        switch action {
+        case .play: 126
+        case .pause: 127
+        case .stop: 86
+        case .next: 87
+        case .previous: 88
+        default: nil
+        }
+    }
+}
+
 extension AdbClient {
     /// Connects to the device (TCP, falling back to switching a matching USB device to TCP/IP)
     /// and asks the companion app to start its network service in the background.

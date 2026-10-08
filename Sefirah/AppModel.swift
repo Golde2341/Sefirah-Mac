@@ -106,6 +106,9 @@ final class AppModel: PairingDecider {
     private var terminateObserver: NSObjectProtocol?
     private var mediaRefreshTask: Task<Void, Never>?
     private var macPlaybackSources: [String: Set<String>] = [:]
+    /// Paired-device adb serials, refreshed periodically; media transport prefers these keys.
+    private var adbSerials: [String: String] = [:]
+    private var maintenanceTask: Task<Void, Never>?
 
     init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
@@ -217,6 +220,18 @@ final class AppModel: PairingDecider {
             while !Task.isCancelled {
                 await publishMacPlaybackMetadata(to: paired.filter(\.isConnected).map(\.id))
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
+        }
+        maintenanceTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                await self.refreshAdbOnlineState()
+                var pruned = false
+                for device in self.paired {
+                    pruned = self.hub.prunePausedPlayback(deviceId: device.id, maxAge: 600) || pruned
+                }
+                if pruned { self.refreshDevice() }
+                try? await Task.sleep(nanoseconds: 15_000_000_000)
             }
         }
     }
@@ -425,7 +440,21 @@ final class AppModel: PairingDecider {
 
     func sendMediaAction(_ type: MediaActionType, source: String, value: Double? = nil) {
         guard let deviceID = selectedDeviceID else { return }
-        session?.send(to: deviceID, hub.mediaAction(type, source: source, value: value))
+        let action = hub.mediaAction(type, source: source, value: value)
+        // With the phone reachable over adb, transport keys go through `input keyevent` — the
+        // companion app cannot dispatch media sessions while the screen is off.
+        if MediaKeyEvent.keyCode(for: type) != nil, adbSerials[deviceID] != nil,
+           let peer = paired.first(where: { $0.id == deviceID })
+        {
+            Task { [weak self] in
+                guard let self else { return }
+                if await self.sendMediaKeyEvent(type, device: peer) == false {
+                    self.session?.send(to: deviceID, action)
+                }
+            }
+        } else {
+            session?.send(to: deviceID, action)
+        }
         if let index = live.playback.firstIndex(where: { $0.source == source }) {
             switch type {
             case .play: live.playback[index].isPlaying = true
@@ -437,6 +466,57 @@ final class AppModel: PairingDecider {
             default: break
             }
         }
+    }
+
+    /// Sends a transport key code over adb. Returns false when adb could not deliver it, so the
+    /// caller can fall back to the companion app.
+    private func sendMediaKeyEvent(_ type: MediaActionType, device: ConnectedPeer) async -> Bool {
+        guard let adb = resolvedAdb,
+              let serial = adbSerials[device.id],
+              let keyCode = MediaKeyEvent.keyCode(for: type)
+        else { return false }
+        var env = ProcessInfo.processInfo.environment
+        if env["HOME"] == nil { env["HOME"] = NSHomeDirectory() }
+        if env["PATH"] == nil { env["PATH"] = ScrcpyLaunchPlanner.defaultPath }
+        let client = AdbClient(adb: adb, environment: env, runner: commandRunner)
+        do {
+            let result = try await client.shell(serial: serial, ["input", "keyevent", String(keyCode)], timeout: 5)
+            guard result.exitCode == 0 else {
+                adbSerials[device.id] = nil
+                return false
+            }
+            return true
+        } catch {
+            adbSerials[device.id] = nil
+            return false
+        }
+    }
+
+    /// Re-checks which paired phones currently show up in `adb devices`.
+    private func refreshAdbOnlineState() async {
+        guard let adb = resolvedAdb, !paired.isEmpty else {
+            adbSerials = [:]
+            return
+        }
+        var env = ProcessInfo.processInfo.environment
+        if env["HOME"] == nil { env["HOME"] = NSHomeDirectory() }
+        if env["PATH"] == nil { env["PATH"] = ScrcpyLaunchPlanner.defaultPath }
+        let client = AdbClient(adb: adb, environment: env, runner: commandRunner)
+        guard let devices = try? await client.devices() else {
+            adbSerials = [:]
+            return
+        }
+        let online = devices.filter { $0.state == "device" }
+        var serials: [String: String] = [:]
+        for peer in paired {
+            let match = online.first { device in
+                device.serial == "\(peer.address):5555"
+                    || (device.isTcp && device.serial.hasPrefix("\(peer.address):"))
+                    || AdbOutput.modelMatches(adbModel: device.model, peerModel: peer.model)
+            }
+            if let match { serials[peer.id] = match.serial }
+        }
+        adbSerials = serials
     }
 
     func sendClipboard() {
@@ -684,6 +764,17 @@ final class AppModel: PairingDecider {
         for app in apps {
             setAppNotificationsEnabled(app, isEnabled: isEnabled)
         }
+    }
+
+    /// Clears the mirrored notification feed for the selected device, withdrawing its delivered
+    /// macOS banners as well.
+    func clearAllNotifications() {
+        guard let deviceID = selectedDeviceID else { return }
+        for note in notifications {
+            macNotifications.remove(notificationKey: note.notificationKey, from: deviceID)
+        }
+        _ = try? hub.handle(deviceId: deviceID, .clearNotifications)
+        refreshDevice()
     }
 
     /// Dispatches to the native session or the external scrcpy window per `general.mirrorBackend`.
@@ -1067,6 +1158,8 @@ final class AppModel: PairingDecider {
             upsertPaired(peer)
             selectedDeviceID = peer.id
             completeOnboarding()
+            // Media from before this connection must not surface.
+            hub.resetPlaybackState(deviceId: peer.id)
             refreshDevice()
             sendActionList(to: peer.id)
             session?.send(to: peer.id, .requestApplicationList)
@@ -1077,6 +1170,8 @@ final class AppModel: PairingDecider {
             if let index = paired.firstIndex(where: { $0.id == deviceId }) {
                 paired[index].isConnected = false
             }
+            hub.resetPlaybackState(deviceId: deviceId)
+            if selectedDeviceID == deviceId { refreshDevice() }
             if !forced {
                 session?.reconnectPairedDevices()
                 autoReconnect(deviceId: deviceId)

@@ -13,6 +13,8 @@ public struct NotificationSnapshot: Equatable, Sendable, Identifiable {
     public var timestampMillis: Int64
     public var replyResultKey: String?
     public var actions: [NotificationAction]
+    /// Rendered artwork (contact photo + app badge, or the app icon) for the feed and banners.
+    public var icon: Data?
 }
 
 public struct ConversationSnapshot: Equatable, Sendable, Identifiable {
@@ -39,6 +41,8 @@ public struct DeviceLiveState: Equatable, Sendable {
     public var ringerMode: Int?
     public var dndEnabled: Bool?
     public var playback: [PlaybackInfo]
+    /// Wall-clock moment each session was last seen paused (used to drop stale player cards).
+    public var pausedSince: [String: Date]
     public var audioStreams: [AudioStreamType: Int]
     public var incomingCall: CallInfo?
     public var clipboard: ClipboardInfo?
@@ -49,6 +53,7 @@ public struct DeviceLiveState: Equatable, Sendable {
 
     public init() {
         playback = []
+        pausedSince = [:]
         audioStreams = [
             .media: 0,
             .ring: 0,
@@ -136,9 +141,23 @@ public final class FeatureHub: @unchecked Sendable {
         case .dndState(let dnd):
             state.dndEnabled = dnd.isEnabled
         case .playbackInfo(let playback):
-            state.playback.removeAll { $0.source == playback.source }
-            if playback.infoType != .removedSession {
-                state.playback.append(playback)
+            if playback.infoType == .removedSession {
+                state.playback.removeAll { $0.source == playback.source }
+                state.pausedSince[playback.source] = nil
+            } else {
+                if playback.isPlaying {
+                    state.pausedSince[playback.source] = nil
+                } else if state.pausedSince[playback.source] == nil {
+                    state.pausedSince[playback.source] = Date()
+                }
+                if let index = state.playback.firstIndex(where: { $0.source == playback.source }) {
+                    // Merge so transport-only updates don't wipe metadata; most recent leads.
+                    let merged = playback.merging(state.playback[index])
+                    state.playback.remove(at: index)
+                    state.playback.insert(merged, at: 0)
+                } else {
+                    state.playback.insert(playback, at: 0)
+                }
             }
         case .playSound(let sound):
             state.soundPlaying = sound.isPlaying
@@ -247,7 +266,8 @@ public final class FeatureHub: @unchecked Sendable {
                     text: row.text,
                     timestampMillis: row.timestampMillis,
                     replyResultKey: row.replyResultKey,
-                    actions: payload
+                    actions: payload,
+                    icon: row.largeIcon
                 )
             }
         }
@@ -350,6 +370,33 @@ public final class FeatureHub: @unchecked Sendable {
         return record.filter != .disabled
     }
 
+    /// Forgets playback sessions for a device — called when it connects or disconnects so the
+    /// menu bar player never shows media from before the current connection.
+    public func resetPlaybackState(deviceId: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        live[deviceId]?.playback = []
+        live[deviceId]?.pausedSince = [:]
+    }
+
+    /// Drops sessions paused for longer than `maxAge`. Returns true when something was removed.
+    @discardableResult
+    public func prunePausedPlayback(deviceId: String, maxAge: TimeInterval, now: Date = Date()) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard var state = live[deviceId] else { return false }
+        let before = state.playback.count
+        state.playback.removeAll { session in
+            guard !session.isPlaying, let pausedAt = state.pausedSince[session.source] else { return false }
+            return now.timeIntervalSince(pausedAt) > maxAge
+        }
+        let sources = Set(state.playback.map(\.source))
+        state.pausedSince = state.pausedSince.filter { sources.contains($0.key) }
+        guard state.playback.count != before else { return false }
+        live[deviceId] = state
+        return true
+    }
+
     public func liveState(deviceId: String) -> DeviceLiveState {
         lock.lock()
         defer { lock.unlock() }
@@ -378,6 +425,7 @@ public final class FeatureHub: @unchecked Sendable {
             groupKey: info.groupKey,
             tag: info.tag,
             replyResultKey: info.replyResultKey,
+            largeIcon: notificationArtwork(for: info),
             payloadJSON: json
         )
         try database.dbQueue.write { db in
@@ -481,6 +529,20 @@ public final class FeatureHub: @unchecked Sendable {
             )
             try record.save(db)
         }
+    }
+
+    /// Contact photo badged with the app icon when available, else the app icon alone — the same
+    /// artwork the banner shows, rendered once for the rail's notification feed.
+    private func notificationArtwork(for info: NotificationInfo) -> Data? {
+        if !info.largeIcon.isEmpty,
+           let photo = NotificationAttachmentImage.decodeAsContactPhoto(info.largeIcon, appIcon: info.appIcon)
+        {
+            return photo
+        }
+        if let appIcon = info.appIcon, !appIcon.isEmpty {
+            return NotificationAttachmentImage.decodeAsAppIcon(appIcon)
+        }
+        return nil
     }
 
     private func decodePayload(_ json: String) -> [NotificationAction] {
