@@ -13,6 +13,7 @@ final class MacNotificationDelivery {
 
     private struct Payload: Encodable {
         var identifier: String
+        var notificationKey: String
         var title: String
         var subtitle: String
         var body: String
@@ -31,6 +32,7 @@ final class MacNotificationDelivery {
 
         let payload = Payload(
             identifier: Self.identifier(for: notification.notificationKey, deviceID: deviceID),
+            notificationKey: notification.notificationKey,
             title: notification.title?.nonEmpty ?? notification.appName?.nonEmpty ?? "New notification",
             subtitle: notification.appName?.nonEmpty ?? "",
             body: notification.text?.nonEmpty ?? "",

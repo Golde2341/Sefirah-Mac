@@ -289,19 +289,27 @@ struct MenuBarView: View {
         return Data(base64Encoded: thumbnail, options: [.ignoreUnknownCharacters])
     }
 
+    /// Latest notification; clicking opens it on the phone like the macOS banner does.
     private func notificationChip(_ note: NotificationSnapshot) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "bell.badge.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(accent)
-            Text(note.title ?? note.appName)
-                .font(.caption)
-                .lineLimit(1)
-            Spacer(minLength: 0)
+        Button {
+            model.openNotification(note)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "bell.badge.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(accent)
+                Text(note.title ?? note.appName)
+                    .font(.caption)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .buttonStyle(.plain)
         .background(accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .help("Open on the phone")
     }
 
     // MARK: - Configurable buttons

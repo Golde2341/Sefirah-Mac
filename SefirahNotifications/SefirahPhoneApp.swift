@@ -38,6 +38,7 @@ final class SefirahPhoneApp: NSObject, NSApplicationDelegate, UNUserNotification
 
     private struct Payload: Sendable {
         var identifier: String
+        var notificationKey: String?
         var title: String
         var subtitle: String
         var body: String
@@ -64,6 +65,7 @@ final class SefirahPhoneApp: NSObject, NSApplicationDelegate, UNUserNotification
             if let deviceID = payload.deviceID { userInfo["deviceID"] = deviceID }
             if let appPackage = payload.appPackage { userInfo["appPackage"] = appPackage }
             if let appName = payload.appName { userInfo["appName"] = appName }
+            if let notificationKey = payload.notificationKey { userInfo["notificationKey"] = notificationKey }
             content.userInfo = userInfo
 
             // The contact photo / app icon renders on the trailing side of the banner. The system
@@ -89,6 +91,7 @@ final class SefirahPhoneApp: NSObject, NSApplicationDelegate, UNUserNotification
         else { return nil }
         return Payload(
             identifier: dictionary["identifier"] as? String ?? UUID().uuidString,
+            notificationKey: dictionary["notificationKey"] as? String,
             title: dictionary["title"] as? String ?? "",
             subtitle: dictionary["subtitle"] as? String ?? "",
             body: dictionary["body"] as? String ?? "",
@@ -127,14 +130,25 @@ final class SefirahPhoneApp: NSObject, NSApplicationDelegate, UNUserNotification
         let deviceID = userInfo["deviceID"] as? String
         let package = userInfo["appPackage"] as? String
         let appName = userInfo["appName"] as? String
+        let notificationKey = userInfo["notificationKey"] as? String
         Task { @MainActor in
-            Self.relayToSefirah(deviceID: deviceID, package: package, appName: appName)
+            Self.relayToSefirah(
+                deviceID: deviceID,
+                package: package,
+                appName: appName,
+                notificationKey: notificationKey
+            )
             completionHandler()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { NSApp.terminate(nil) }
         }
     }
 
-    private static func relayToSefirah(deviceID: String?, package: String?, appName: String?) {
+    private static func relayToSefirah(
+        deviceID: String?,
+        package: String?,
+        appName: String?,
+        notificationKey: String?
+    ) {
         guard let deviceID, let package, !package.isEmpty else { return }
         var components = URLComponents()
         components.scheme = "sefirah"
@@ -145,6 +159,9 @@ final class SefirahPhoneApp: NSObject, NSApplicationDelegate, UNUserNotification
         ]
         if let appName, !appName.isEmpty {
             items.append(URLQueryItem(name: "name", value: appName))
+        }
+        if let notificationKey, !notificationKey.isEmpty {
+            items.append(URLQueryItem(name: "key", value: notificationKey))
         }
         components.queryItems = items
         if let url = components.url {

@@ -1214,16 +1214,33 @@ final class AppModel: PairingDecider {
             openNotificationApp(
                 deviceID: deviceID,
                 appPackage: package,
-                appName: items.first(where: { $0.name == "name" })?.value
+                appName: items.first(where: { $0.name == "name" })?.value,
+                notificationKey: items.first(where: { $0.name == "key" })?.value
             )
         } else if let package = url.host, !package.isEmpty {
             startMirror(package: package)
         }
     }
 
-    /// Opens a mirrored notification's app on the phone; the URL is sent by the `Sefirah Phone`
-    /// helper when one of its notifications is clicked.
-    private func openNotificationApp(deviceID: String, appPackage: String, appName: String?) {
+    /// Notification card clicked in the rail: same behaviour as clicking the macOS banner.
+    func openNotification(_ note: NotificationSnapshot) {
+        openNotificationApp(
+            deviceID: note.deviceId,
+            appPackage: note.appPackage,
+            appName: note.appName,
+            notificationKey: note.notificationKey
+        )
+    }
+
+    /// Opens a mirrored notification on the phone — firing its content intent so messaging apps
+    /// land on the right screen — and mirrors just the app on a virtual display. The URL is sent by
+    /// the `Sefirah Phone` helper on a banner click.
+    private func openNotificationApp(
+        deviceID: String,
+        appPackage: String,
+        appName: String?,
+        notificationKey: String?
+    ) {
         guard general.openAppOnNotificationClick else { return }
 
         if general.mirrorBackend == .native {
@@ -1248,6 +1265,18 @@ final class AppModel: PairingDecider {
             selectedDeviceID = deviceID
             refreshDevice()
         }
+
+        if let notificationKey, !notificationKey.isEmpty {
+            // Ask the phone to fire the notification's PendingIntent so it opens the right screen.
+            session?.send(to: deviceID, .notificationInfo(NotificationInfo(
+                notificationKey: notificationKey,
+                infoType: .invoke,
+                timestampMillis: Int64(Date().timeIntervalSince1970 * 1000),
+                appPackage: appPackage,
+                appName: appName
+            )))
+        }
+        // Mirror the app alone on a virtual display rather than the whole phone screen.
         startMirror(package: appPackage, appName: appName)
     }
 

@@ -47,7 +47,7 @@ struct NotificationFeedView: View {
                     Spacer()
                     if model.general.openAppOnNotificationClick, !note.appPackage.isEmpty {
                         Button("Open App") {
-                            model.startMirror(package: note.appPackage, appName: note.appName)
+                            model.openNotification(note)
                         }
                         .buttonStyle(.borderless)
                         .font(.caption)
@@ -77,7 +77,7 @@ struct NotificationFeedView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             if model.general.openAppOnNotificationClick, !note.appPackage.isEmpty {
-                model.startMirror(package: note.appPackage, appName: note.appName)
+                model.openNotification(note)
             }
         }
     }
