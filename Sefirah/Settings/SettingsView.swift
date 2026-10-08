@@ -27,6 +27,8 @@ struct SettingsView: View {
                     .onChange(of: model.general.syncClipboardToPhone) { _, _ in
                         model.clipboardSyncSettingChanged()
                     }
+                Toggle("Auto-connect when the phone disconnects", isOn: $model.general.autoReconnect)
+                    .onChange(of: model.general.autoReconnect) { model.saveGeneral() }
                 Button("Save") { model.saveGeneral() }
             }
             Section("Menu bar") {
@@ -49,6 +51,10 @@ struct SettingsView: View {
             Section("Notifications") {
                 Toggle("Open app when clicking notification", isOn: $model.general.openAppOnNotificationClick)
                     .onChange(of: model.general.openAppOnNotificationClick) {
+                        model.saveGeneral()
+                    }
+                Toggle("Show app icons in notifications", isOn: $model.general.showNotificationIcons)
+                    .onChange(of: model.general.showNotificationIcons) {
                         model.saveGeneral()
                     }
                 HStack {

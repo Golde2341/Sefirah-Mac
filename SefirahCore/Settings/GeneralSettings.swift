@@ -19,6 +19,10 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     public var mirrorFallbackToExternal: Bool
     /// Open the corresponding app when clicking a notification banner or item.
     public var openAppOnNotificationClick: Bool
+    /// Attach the contact photo / app icon to mirrored notification banners.
+    public var showNotificationIcons: Bool
+    /// Wake the phone over adb and reconnect automatically when its connection drops.
+    public var autoReconnect: Bool
     /// Restart the local adb server (`adb kill-server` + `start-server`) when Sefirah launches.
     public var restartAdbServerOnLaunch: Bool
     /// Continuously push the Mac clipboard to the phone as it changes.
@@ -50,6 +54,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         verboseMirrorLogs: Bool = false,
         mirrorFallbackToExternal: Bool = false,
         openAppOnNotificationClick: Bool = true,
+        showNotificationIcons: Bool = true,
+        autoReconnect: Bool = false,
         restartAdbServerOnLaunch: Bool = false,
         syncClipboardToPhone: Bool = false,
         menuBarOpenApps: Bool = true,
@@ -72,6 +78,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.verboseMirrorLogs = verboseMirrorLogs
         self.mirrorFallbackToExternal = mirrorFallbackToExternal
         self.openAppOnNotificationClick = openAppOnNotificationClick
+        self.showNotificationIcons = showNotificationIcons
+        self.autoReconnect = autoReconnect
         self.restartAdbServerOnLaunch = restartAdbServerOnLaunch
         self.syncClipboardToPhone = syncClipboardToPhone
         self.menuBarOpenApps = menuBarOpenApps
@@ -99,6 +107,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         verboseMirrorLogs = try c.decodeIfPresent(Bool.self, forKey: .verboseMirrorLogs) ?? defaults.verboseMirrorLogs
         mirrorFallbackToExternal = try c.decodeIfPresent(Bool.self, forKey: .mirrorFallbackToExternal) ?? defaults.mirrorFallbackToExternal
         openAppOnNotificationClick = try c.decodeIfPresent(Bool.self, forKey: .openAppOnNotificationClick) ?? defaults.openAppOnNotificationClick
+        showNotificationIcons = try c.decodeIfPresent(Bool.self, forKey: .showNotificationIcons) ?? defaults.showNotificationIcons
+        autoReconnect = try c.decodeIfPresent(Bool.self, forKey: .autoReconnect) ?? defaults.autoReconnect
         restartAdbServerOnLaunch = try c.decodeIfPresent(Bool.self, forKey: .restartAdbServerOnLaunch) ?? defaults.restartAdbServerOnLaunch
         syncClipboardToPhone = try c.decodeIfPresent(Bool.self, forKey: .syncClipboardToPhone) ?? defaults.syncClipboardToPhone
         menuBarOpenApps = try c.decodeIfPresent(Bool.self, forKey: .menuBarOpenApps) ?? defaults.menuBarOpenApps

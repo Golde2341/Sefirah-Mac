@@ -29,6 +29,15 @@ struct MenuBarView: View {
                 MenuBarRowButton(title: "Show Window", systemImage: "macwindow", tint: accent) {
                     showWindow()
                 }
+                if let device = model.selectedDevice, !device.isConnected {
+                    MenuBarRowButton(
+                        title: "Reconnect",
+                        systemImage: "arrow.clockwise",
+                        tint: .orange
+                    ) {
+                        model.reconnectSelectedDevice()
+                    }
+                }
                 MenuBarRowButton(title: "Quit Sefirah", systemImage: "power", tint: .red) {
                     NSApp.terminate(nil)
                 }

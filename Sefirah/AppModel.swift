@@ -236,10 +236,83 @@ final class AppModel: PairingDecider {
     }
 
     func reconnect(_ peer: ConnectedPeer) {
+        connectNow(peer)
+        session?.reconnectPairedDevices()
+        // adb shell works even when the companion app isn't running: wake it in the background and
+        // retry the TLS dial once it has had a moment to start its network service.
+        Task { [weak self] in
+            guard let self else { return }
+            _ = await self.wakePhone(peer)
+            if self.paired.first(where: { $0.id == peer.id })?.isConnected != true {
+                self.connectNow(peer)
+            }
+        }
+    }
+
+    /// Menu-bar action: wakes the selected phone in the background over adb and reconnects.
+    func reconnectSelectedDevice() {
+        guard let peer = selectedDevice else { return }
+        reconnect(peer)
+    }
+
+    private func connectNow(_ peer: ConnectedPeer) {
         if let host = PeerAddress.reconnectable(peer.address) {
             session?.connect(deviceId: peer.id, host: host, port: peer.port)
         }
-        session?.reconnectPairedDevices()
+    }
+
+    private enum CompanionWakeResult {
+        case woke
+        /// `adb devices` lists the phone as offline: retrying won't help.
+        case deviceOffline
+        case failed
+    }
+
+    /// Asks the phone's companion app to start in the background over adb (its exported
+    /// `NetworkService` handles a `CONNECT` action) and pauses so a following dial has a chance.
+    /// Best effort: any adb problem is logged and the caller's normal reconnect still stands.
+    private func wakePhone(_ peer: ConnectedPeer) async -> CompanionWakeResult {
+        guard let adb = resolvedAdb else { return .failed }
+        var env = ProcessInfo.processInfo.environment
+        if env["HOME"] == nil { env["HOME"] = NSHomeDirectory() }
+        if env["PATH"] == nil { env["PATH"] = ScrcpyLaunchPlanner.defaultPath }
+        let client = AdbClient(adb: adb, environment: env, runner: commandRunner)
+
+        if let devices = try? await client.devices(), devices.contains(where: { device in
+            device.state == "offline"
+                && (device.serial == "\(peer.address):5555"
+                    || AdbOutput.modelMatches(adbModel: device.model, peerModel: peer.model))
+        }) {
+            mirrorLaunchLog.info("Wake skipped: \(peer.name, privacy: .public) is offline in adb")
+            return .deviceOffline
+        }
+
+        do {
+            try await client.wakeCompanion(host: peer.address, model: peer.model)
+            mirrorLaunchLog.info("Woke \(peer.name, privacy: .public) via adb")
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            return .woke
+        } catch {
+            mirrorLaunchLog.info("Companion wake skipped: \(error.localizedDescription, privacy: .public)")
+            return .failed
+        }
+    }
+
+    /// Auto-connect: after a drop, wake the phone over adb and dial again after each wake. Makes a
+    /// second attempt 5 s later unless the first look at adb already showed the phone offline, in
+    /// which case retrying would not help.
+    private func autoReconnect(deviceId: String) {
+        guard general.autoReconnect, let peer = paired.first(where: { $0.id == deviceId }) else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            let first = await self.wakePhone(peer)
+            guard first != .deviceOffline else { return }
+            self.connectNow(peer)
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard self.paired.first(where: { $0.id == peer.id })?.isConnected != true else { return }
+            _ = await self.wakePhone(peer)
+            self.connectNow(peer)
+        }
     }
 
     /// Unpairs a device: stops its mirrors, tells the phone we're unpairing (best effort, only
@@ -977,6 +1050,7 @@ final class AppModel: PairingDecider {
             }
             if !forced {
                 session?.reconnectPairedDevices()
+                autoReconnect(deviceId: deviceId)
             }
         case .inboundMessage(let deviceId, let message):
             if case .mediaAction(let action) = message,
@@ -1072,7 +1146,7 @@ final class AppModel: PairingDecider {
         if notification.infoType == .removed {
             macNotifications.remove(notificationKey: notification.notificationKey, from: deviceID)
         } else if let appPackage = notification.appPackage, hub.isNotificationEnabled(deviceId: deviceID, packageName: appPackage) {
-            macNotifications.deliver(notification, from: deviceID)
+            macNotifications.deliver(notification, from: deviceID, includeIcon: general.showNotificationIcons)
         }
     }
 

@@ -242,6 +242,35 @@ public enum ScrcpyDeviceSelection {
     }
 }
 
+/// Starts the paired Android companion in the background over adb. Its exported
+/// `sefirah.network.NetworkService` accepts a `CONNECT` action and dials the last paired desktop,
+/// which is what makes the normal TLS reconnect succeed when the app wasn't running.
+public enum CompanionWake {
+    public static let serviceComponent = "com.castle.sefirah/sefirah.network.NetworkService"
+    public static let connectAction = "CONNECT"
+
+    /// `am start-foreground-service -n <component> -a CONNECT`
+    public static let shellArguments = [
+        "am", "start-foreground-service", "-n", serviceComponent, "-a", connectAction,
+    ]
+}
+
+extension AdbClient {
+    /// Connects to the device (TCP, falling back to switching a matching USB device to TCP/IP)
+    /// and asks the companion app to start its network service in the background.
+    public func wakeCompanion(host: String, model: String) async throws {
+        let serial = try await tryConnectTcp(host: host, model: model)
+        let result = try await shell(serial: serial, CompanionWake.shellArguments, timeout: 10)
+        guard result.exitCode == 0 else {
+            throw AdbError.commandFailed(
+                command: "start-foreground-service",
+                exitCode: result.exitCode,
+                stderr: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+        }
+    }
+}
+
 // MARK: - Native mirror helpers (all thread `-s serial`)
 
 extension AdbClient {

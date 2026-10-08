@@ -24,7 +24,7 @@ final class MacNotificationDelivery {
 
     private init() {}
 
-    func deliver(_ notification: NotificationInfo, from deviceID: String) {
+    func deliver(_ notification: NotificationInfo, from deviceID: String, includeIcon: Bool) {
         guard notification.infoType == .new,
               let appPackage = notification.appPackage?.nonEmpty
         else { return }
@@ -37,7 +37,9 @@ final class MacNotificationDelivery {
             deviceID: deviceID,
             appPackage: appPackage,
             appName: notification.appName?.nonEmpty,
-            attachmentPath: Self.writeAttachment(contactPhoto: notification.largeIcon, appIcon: notification.appIcon)
+            attachmentPath: includeIcon
+                ? Self.writeAttachment(contactPhoto: notification.largeIcon, appIcon: notification.appIcon)
+                : nil
         )
         guard let data = try? JSONEncoder().encode(payload) else { return }
         let url = FileManager.default.temporaryDirectory

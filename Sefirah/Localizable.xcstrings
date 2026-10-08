@@ -110,6 +110,9 @@
     "Audio" : {
 
     },
+    "Auto-connect when the phone disconnects" : {
+
+    },
     "AV1" : {
 
     },
@@ -521,6 +524,9 @@
     "Recent" : {
 
     },
+    "Reconnect" : {
+
+    },
     "Refresh" : {
 
     },
@@ -615,6 +621,9 @@
 
     },
     "Settings" : {
+
+    },
+    "Show app icons in notifications" : {
 
     },
     "Show Window" : {

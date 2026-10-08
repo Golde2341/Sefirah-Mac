@@ -53,6 +53,34 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertTrue(try store.loadGeneral().syncClipboardToPhone)
     }
 
+    func testShowNotificationIconsRoundTrip() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = SettingsStore(directory: directory)
+        XCTAssertTrue(try store.loadGeneral().showNotificationIcons)
+
+        var updated = try store.loadGeneral()
+        updated.showNotificationIcons = false
+        try store.saveGeneral(updated)
+        XCTAssertFalse(try store.loadGeneral().showNotificationIcons)
+    }
+
+    func testAutoReconnectRoundTrip() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = SettingsStore(directory: directory)
+        XCTAssertFalse(try store.loadGeneral().autoReconnect)
+
+        var updated = try store.loadGeneral()
+        updated.autoReconnect = true
+        try store.saveGeneral(updated)
+        XCTAssertTrue(try store.loadGeneral().autoReconnect)
+    }
+
     func testDeviceSettingsClampBatteryThreshold() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")

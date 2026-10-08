@@ -77,6 +77,40 @@ final class AdbClientTests: XCTestCase {
         }
     }
 
+    func testWakeCompanionConnectsThenStartsService() async throws {
+        let runner = FakeCommandRunner([
+            ok("connected to 10.0.0.2:5555"),
+            ok("Starting service: Intent { act=CONNECT cmp=com.castle.sefirah/sefirah.network.NetworkService }"),
+        ])
+        try await client(runner).wakeCompanion(host: "10.0.0.2", model: "Pixel 7")
+        XCTAssertEqual(runner.calls, [
+            ["connect", "10.0.0.2:5555"],
+            [
+                "-s", "10.0.0.2:5555", "shell",
+                "am", "start-foreground-service",
+                "-n", "com.castle.sefirah/sefirah.network.NetworkService",
+                "-a", "CONNECT",
+            ],
+        ])
+    }
+
+    func testWakeCompanionThrowsWhenServiceStartFails() async {
+        let runner = FakeCommandRunner([
+            ok("connected to 10.0.0.2:5555"),
+            fail("Error: Not found; no service started"),
+        ])
+        do {
+            try await client(runner).wakeCompanion(host: "10.0.0.2", model: "Pixel 7")
+            XCTFail("expected throw")
+        } catch {
+            XCTAssertEqual(error as? AdbError, .commandFailed(
+                command: "start-foreground-service",
+                exitCode: 1,
+                stderr: "Error: Not found; no service started"
+            ))
+        }
+    }
+
     func testSpawnFailurePropagates() async {
         let runner = FakeCommandRunner([.spawnError])
         do {
