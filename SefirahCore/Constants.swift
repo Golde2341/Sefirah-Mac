@@ -1,7 +1,7 @@
 import Foundation
 
 public enum SefirahConstants {
-    public static let schemaVersion = 6
+    public static let schemaVersion = 7
     public static let databaseFileName = "sefirah.db"
     public static let certificateFileName = "Sefirah.cer"
     public static let privateKeyFileName = "Sefirah.key"

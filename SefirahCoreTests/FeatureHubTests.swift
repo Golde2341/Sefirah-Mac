@@ -230,6 +230,23 @@ final class FeatureHubTests: XCTestCase {
         XCTAssertEqual(try hub.apps(deviceId: "phone").first?.icon, icon)
     }
 
+    func testHiddenAppsRoundTripAndSyncPreservesTheFlag() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .applicationInfo(
+            ApplicationInfo(packageName: "com.x", appName: "X")
+        ))
+        try hub.setAppHidden(deviceId: "phone", packageName: "com.x", isHidden: true)
+        XCTAssertEqual(try hub.apps(deviceId: "phone").first?.hidden, true)
+
+        // Re-syncing the app list keeps the user's hidden flag (and picks up name changes).
+        _ = try hub.handle(deviceId: "phone", .applicationInfo(
+            ApplicationInfo(packageName: "com.x", appName: "X Renamed")
+        ))
+        let reloaded = try XCTUnwrap(hub.apps(deviceId: "phone").first)
+        XCTAssertTrue(reloaded.hidden)
+        XCTAssertEqual(reloaded.appName, "X Renamed")
+    }
+
     private func sampleIconPNG() throws -> Data {
         let size = 64
         let rep = try XCTUnwrap(NSBitmapImageRep(

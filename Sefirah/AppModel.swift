@@ -601,12 +601,14 @@ final class AppModel: PairingDecider {
 
     // MARK: - Native mirror
 
+    /// Launcher apps without the hidden ones; hidden apps live in `hiddenApps` behind
+    /// device-owner authentication.
     var sortedApps: [ApplicationRecord] {
         let recentPositions = Dictionary(
             uniqueKeysWithValues: general.recentlyOpenedAppKeys.enumerated().map { ($0.element, $0.offset) }
         )
 
-        return apps.sorted { lhs, rhs in
+        return apps.filter { !$0.hidden }.sorted { lhs, rhs in
             if lhs.pinned != rhs.pinned {
                 return lhs.pinned
             }
@@ -626,11 +628,19 @@ final class AppModel: PairingDecider {
         }
     }
 
+    /// Recent apps for the menu bar; hidden apps never surface here.
     var recentlyOpenedApps: [ApplicationRecord] {
         general.recentlyOpenedAppKeys
-            .compactMap { key in apps.first { $0.appKey == key } }
+            .compactMap { key in apps.first { $0.appKey == key && !$0.hidden } }
             .prefix(8)
             .map { $0 }
+    }
+
+    /// Apps the user hid from the launcher list; revealed in the Apps tab behind device-owner
+    /// authentication (password or biometrics).
+    var hiddenApps: [ApplicationRecord] {
+        apps.filter(\.hidden)
+            .sorted { $0.appName.localizedStandardCompare($1.appName) == .orderedAscending }
     }
 
     func togglePinnedApp(_ app: ApplicationRecord) {
@@ -643,6 +653,18 @@ final class AppModel: PairingDecider {
 
         if let index = apps.firstIndex(where: { $0.appKey == app.appKey }) {
             apps[index].pinned = isPinned
+        }
+    }
+
+    func setAppHidden(_ app: ApplicationRecord, isHidden: Bool) {
+        guard (try? hub.setAppHidden(
+            deviceId: app.deviceId,
+            packageName: app.packageName,
+            isHidden: isHidden
+        )) != nil else { return }
+
+        if let index = apps.firstIndex(where: { $0.appKey == app.appKey }) {
+            apps[index].hidden = isHidden
         }
     }
 

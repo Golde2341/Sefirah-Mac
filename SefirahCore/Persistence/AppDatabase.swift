@@ -160,6 +160,11 @@ public struct AppDatabase: Sendable {
             try db.execute(sql: "ALTER TABLE ApplicationEntity ADD COLUMN Icon BLOB")
             try db.execute(sql: "INSERT INTO SchemaVersionEntity (Version) VALUES (6)")
         }
+        migrator.registerMigration("v7") { db in
+            // User-hidden launcher apps (revealed behind device-owner authentication).
+            try db.execute(sql: "ALTER TABLE ApplicationEntity ADD COLUMN Hidden INTEGER NOT NULL DEFAULT 0")
+            try db.execute(sql: "INSERT INTO SchemaVersionEntity (Version) VALUES (7)")
+        }
         return migrator
     }
 }

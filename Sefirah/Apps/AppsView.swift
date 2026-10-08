@@ -1,4 +1,5 @@
 import AppKit
+import LocalAuthentication
 import SefirahCore
 import SwiftUI
 
@@ -30,6 +31,8 @@ enum AppsViewMode: String, CaseIterable, Identifiable {
 struct AppsView: View {
     @Bindable var model: AppModel
     @State private var query = ""
+    @State private var hiddenUnlocked = false
+    @State private var isAuthenticating = false
     @AppStorage("AppsViewMode") private var viewMode: AppsViewMode = .list
 
     var body: some View {
@@ -73,7 +76,10 @@ struct AppsView: View {
                     gridLayout(filtered, compact: true)
                 }
             }
+
+            hiddenSection
         }
+        .onDisappear { hiddenUnlocked = false }
     }
 
     private func listLayout(_ apps: [ApplicationRecord]) -> some View {
@@ -94,6 +100,81 @@ struct AppsView: View {
             }
             .padding()
         }
+    }
+
+    // MARK: - Hidden apps
+
+    /// A lock strip at the bottom of the tab. Hidden apps only render after the user
+    /// authenticates with Touch ID or the login password.
+    @ViewBuilder
+    private var hiddenSection: some View {
+        if !model.hiddenApps.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                Divider()
+                if hiddenUnlocked {
+                    HStack {
+                        Label("Hidden apps", systemImage: "lock.open")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Lock") { hiddenUnlocked = false }
+                            .controlSize(.small)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(model.hiddenApps, id: \.appKey) { app in
+                                HiddenAppRow(app: app, model: model)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 180)
+                } else {
+                    Button {
+                        unlockHiddenApps()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lock.fill")
+                                .foregroundStyle(.secondary)
+                            Text("Hidden apps")
+                            Spacer()
+                            Text(isAuthenticating ? "Authenticating…" : "Reveal")
+                                .foregroundStyle(.secondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isAuthenticating)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+    }
+
+    private func unlockHiddenApps() {
+        guard !isAuthenticating else { return }
+        isAuthenticating = true
+        Task {
+            let unlocked = await HiddenAppsAuth.authenticate()
+            isAuthenticating = false
+            if unlocked { hiddenUnlocked = true }
+        }
+    }
+}
+
+/// Unlocks the hidden apps section with Touch ID or the login password.
+private enum HiddenAppsAuth {
+    static func authenticate() async -> Bool {
+        let context = LAContext()
+        var error: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else { return false }
+        return (try? await context.evaluatePolicy(
+            .deviceOwnerAuthentication,
+            localizedReason: "Reveal hidden apps"
+        )) ?? false
     }
 }
 
@@ -135,7 +216,7 @@ private enum AppIconCache {
     }
 }
 
-/// List row: click launches on the phone, right-click pins.
+/// List row: click launches on the phone, right-click pins or hides.
 private struct AppRow: View {
     let app: ApplicationRecord
     @Bindable var model: AppModel
@@ -163,12 +244,19 @@ private struct AppRow: View {
         .buttonStyle(.plain)
         .disabled(isPending)
         .contextMenu {
-            Button(app.pinned ? "Unpin" : "Pin") { model.togglePinnedApp(app) }
+            appActions
         }
+    }
+
+    @ViewBuilder
+    private var appActions: some View {
+        Button(app.pinned ? "Unpin" : "Pin") { model.togglePinnedApp(app) }
+        Divider()
+        Button("Hide") { model.setAppHidden(app, isHidden: true) }
     }
 }
 
-/// Grid cell: click launches on the phone, right-click pins.
+/// Grid cell: click launches on the phone, right-click pins or hides.
 private struct AppTile: View {
     let app: ApplicationRecord
     @Bindable var model: AppModel
@@ -208,6 +296,44 @@ private struct AppTile: View {
         .disabled(isPending)
         .help(app.appName)
         .contextMenu {
+            Button(app.pinned ? "Unpin" : "Pin") { model.togglePinnedApp(app) }
+            Divider()
+            Button("Hide") { model.setAppHidden(app, isHidden: true) }
+        }
+    }
+}
+
+/// Row inside the unlocked hidden-apps section: can unhide or pin.
+private struct HiddenAppRow: View {
+    let app: ApplicationRecord
+    @Bindable var model: AppModel
+
+    private var isPending: Bool {
+        model.selectedDevice.map { model.isMirrorPending("\($0.id):\(app.packageName)") } ?? true
+    }
+
+    var body: some View {
+        Button {
+            model.startMirror(package: app.packageName, appName: app.appName)
+        } label: {
+            HStack(spacing: 10) {
+                AppIconView(app: app, size: 24)
+                Text(app.appName)
+                Spacer()
+                if app.pinned {
+                    Image(systemName: "pin.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isPending)
+        .contextMenu {
+            Button("Unhide") { model.setAppHidden(app, isHidden: false) }
             Button(app.pinned ? "Unpin" : "Pin") { model.togglePinnedApp(app) }
         }
     }

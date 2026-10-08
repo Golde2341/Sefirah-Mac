@@ -110,6 +110,9 @@
     "Audio" : {
 
     },
+    "Authenticating…" : {
+
+    },
     "Auto-connect when the phone disconnects" : {
 
     },
@@ -317,6 +320,15 @@
     "H.265" : {
 
     },
+    "Hidden apps" : {
+
+    },
+    "Hidden apps (%lld)" : {
+
+    },
+    "Hide" : {
+
+    },
     "Incoming and missed calls from your phone appear here." : {
 
     },
@@ -348,6 +360,9 @@
 
     },
     "Listening on port %lld" : {
+
+    },
+    "Lock" : {
 
     },
     "Mac and phone" : {
@@ -560,6 +575,9 @@
     "Retry" : {
 
     },
+    "Reveal" : {
+
+    },
     "Ring" : {
 
     },
@@ -705,6 +723,9 @@
 
     },
     "Turn phone screen off while mirroring" : {
+
+    },
+    "Unhide" : {
 
     },
     "Unlock commands" : {

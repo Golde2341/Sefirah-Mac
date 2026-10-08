@@ -320,6 +320,16 @@ public final class FeatureHub: @unchecked Sendable {
         }
     }
 
+    public func setAppHidden(deviceId: String, packageName: String, isHidden: Bool) throws {
+        let appKey = "\(deviceId):\(packageName)"
+        try database.dbQueue.write { db in
+            if var record = try ApplicationRecord.fetchOne(db, key: appKey) {
+                record.hidden = isHidden
+                try record.update(db)
+            }
+        }
+    }
+
     public func setAppNotificationsEnabled(deviceId: String, packageName: String, isEnabled: Bool) throws {
         let appKey = "\(deviceId):\(packageName)"
         let filter: NotificationFilter = isEnabled ? .toastFeed : .disabled
@@ -466,7 +476,8 @@ public final class FeatureHub: @unchecked Sendable {
                 appName: app.appName,
                 pinned: existing?.pinned ?? false,
                 filter: existing?.filter ?? .toastFeed,
-                icon: icon ?? existing?.icon
+                icon: icon ?? existing?.icon,
+                hidden: existing?.hidden ?? false
             )
             try record.save(db)
         }
