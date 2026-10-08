@@ -110,6 +110,8 @@ final class AppModel: PairingDecider {
     private var adbSerials: [String: String] = [:]
     /// "Phone speakers" while the phone's media stream routes to its internal speaker.
     private(set) var phoneMediaOutputLabel: String?
+    /// Last audio-device snapshot published per device, so refreshes only send diffs.
+    private var publishedAudioDevices: [String: [String: AudioDeviceInfo]] = [:]
     private var maintenanceTask: Task<Void, Never>?
 
     init() {
@@ -229,6 +231,7 @@ final class AppModel: PairingDecider {
             while !Task.isCancelled {
                 await self.refreshAdbOnlineState()
                 await self.refreshPhoneMediaOutput()
+                self.publishAudioDevices(to: self.paired.filter(\.isConnected).map(\.id))
                 var pruned = false
                 for device in self.paired {
                     pruned = self.hub.prunePausedPlayback(deviceId: device.id, maxAge: 600) || pruned
@@ -523,6 +526,75 @@ final class AppModel: PairingDecider {
             return
         }
         phoneMediaOutputLabel = PhoneAudioRoute.label(fromDumpsysAudio: result.stdout)
+    }
+
+    /// Publishes this Mac's audio output devices (volume, mute, default) so the phone's
+    /// remote-playback UI can control them — the desktop `AudioFeature` equivalent.
+    func publishAudioDevices(to deviceIDs: [String]) {
+        guard !deviceIDs.isEmpty else { return }
+        let devices = MacAudioController.outputDevices()
+        for deviceID in deviceIDs where deviceSettings(for: deviceID).audioSync {
+            var previous = publishedAudioDevices[deviceID] ?? [:]
+            var current: [String: AudioDeviceInfo] = [:]
+            for device in devices {
+                let info = AudioDeviceInfo(
+                    infoType: .new,
+                    deviceId: device.uid,
+                    deviceName: device.name,
+                    volume: device.volume,
+                    isMuted: device.isMuted,
+                    isSelected: device.isDefault
+                )
+                current[device.uid] = info
+                if let old = previous[device.uid] {
+                    if old.volume != info.volume || old.isMuted != info.isMuted
+                        || old.isSelected != info.isSelected || old.deviceName != info.deviceName
+                    {
+                        session?.send(to: deviceID, .audioDeviceInfo(
+                            AudioDeviceInfo(
+                                infoType: .active,
+                                deviceId: info.deviceId,
+                                deviceName: info.deviceName,
+                                volume: info.volume,
+                                isMuted: info.isMuted,
+                                isSelected: info.isSelected
+                            )
+                        ))
+                    }
+                } else {
+                    session?.send(to: deviceID, .audioDeviceInfo(info))
+                }
+            }
+            for (uid, old) in previous where current[uid] == nil {
+                session?.send(to: deviceID, .audioDeviceInfo(
+                    AudioDeviceInfo(
+                        infoType: .removed,
+                        deviceId: uid,
+                        deviceName: old.deviceName,
+                        volume: old.volume,
+                        isMuted: old.isMuted,
+                        isSelected: false
+                    )
+                ))
+            }
+            previous = current
+            publishedAudioDevices[deviceID] = previous
+        }
+    }
+
+    /// Applies a volume/mute/default-device request from the phone.
+    private func applyAudioAction(_ action: AudioAction) {
+        let uid = action.source.isEmpty ? nil : action.source
+        switch action.actionType {
+        case .volumeUpdate:
+            if let value = action.value {
+                MacAudioController.setVolume(uid: uid, to: value)
+            }
+        case .toggleMute:
+            MacAudioController.toggleMute(uid: uid)
+        case .defaultDevice:
+            MacAudioController.setDefaultOutput(uid: action.source)
+        }
     }
 
     /// Re-checks which paired phones currently show up in `adb devices`.
@@ -1194,6 +1266,7 @@ final class AppModel: PairingDecider {
             // Sessions from before this connection stay hidden until they update again.
             hub.markPlaybackConnection(deviceId: peer.id, connectedAt: Date())
             refreshDevice()
+            publishAudioDevices(to: [peer.id])
             sendActionList(to: peer.id)
             session?.send(to: peer.id, .requestApplicationList)
             Task { [weak self] in
@@ -1204,12 +1277,17 @@ final class AppModel: PairingDecider {
                 paired[index].isConnected = false
             }
             hub.markPlaybackConnection(deviceId: deviceId, connectedAt: nil)
+            publishedAudioDevices[deviceId] = nil
             if selectedDeviceID == deviceId { refreshDevice() }
             if !forced {
                 session?.reconnectPairedDevices()
                 autoReconnect(deviceId: deviceId)
             }
         case .inboundMessage(let deviceId, let message):
+            if case .audioAction(let action) = message {
+                applyAudioAction(action)
+                publishAudioDevices(to: [deviceId])
+            }
             if case .mediaAction(let action) = message,
                MacMediaController.handles(action)
             {

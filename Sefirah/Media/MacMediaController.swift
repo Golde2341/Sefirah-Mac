@@ -56,6 +56,13 @@ enum MacMediaController {
     static func handle(_ action: MediaAction) async {
         guard action.source == source else { return }
 
+        // Some clients send the media-session volume as a MediaAction instead of an AudioAction:
+        // treat it as this Mac's output volume (PlaybackInfo volumes are 0–100).
+        if action.actionType == .volumeUpdate, let value = action.value {
+            MacAudioController.setVolume(uid: nil, to: value / 100)
+            return
+        }
+
         switch activePlayer {
         case .spotify:
             await runAppleScript(spotifyCommand(for: action))
@@ -78,7 +85,7 @@ enum MacMediaController {
             artist: Host.current().localizedName,
             isPlaying: false,
             appName: "Sefirah",
-            volume: 0,
+            volume: MacAudioController.defaultOutputVolumePercent,
             canPlay: true,
             canPause: true,
             canGoNext: true,
@@ -151,7 +158,7 @@ enum MacMediaController {
             maxSeekTime: Double(fields[4]).map { $0 * durationMultiplier },
             minSeekTime: 0,
             appName: appName,
-            volume: 0,
+            volume: MacAudioController.defaultOutputVolumePercent,
             canPlay: true,
             canPause: true,
             canGoNext: true,

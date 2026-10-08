@@ -106,6 +106,7 @@
 		A8085267ECAFD4326BCDA588 /* MirrorEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 876E784C4DF5D4DB8653C43B /* MirrorEvent.swift */; };
 		AA2021F4BB973490F6C4E8F8 /* SupportingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B92655CE2172F8EEBDA51D52 /* SupportingModels.swift */; };
 		ACD47B85666BE7B217A1777A /* MacMediaController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6187DA7FBB7E01B1FE06ACE /* MacMediaController.swift */; };
+		AB12CD34EF56010203040541 /* MacAudioController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF56010203040540 /* MacAudioController.swift */; };
 		AF235F7028B0131DAE8EC68A /* ScrcpyDiagnosticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78305FD9B48ED36A5EC8630C /* ScrcpyDiagnosticsTests.swift */; };
 		AFA24FF92E304D155E3281C1 /* MirrorSurfaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191AB1E1696D495E11676F45 /* MirrorSurfaceView.swift */; };
 		B095448C878D34C505AFFF55 /* MirrorSettingsDecodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1EC550E112FA07719941290 /* MirrorSettingsDecodeTests.swift */; };
@@ -318,6 +319,7 @@
 		A4537A2583B2028597B24829 /* QrPairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QrPairing.swift; sourceTree = "<group>"; };
 		A58E677DB1D3773143F6258E /* MirrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorView.swift; sourceTree = "<group>"; };
 		A6187DA7FBB7E01B1FE06ACE /* MacMediaController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacMediaController.swift; sourceTree = "<group>"; };
+		AB12CD34EF56010203040540 /* MacAudioController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAudioController.swift; sourceTree = "<group>"; };
 		A9316A95DB3030AF26FADE93 /* CompanionHelpersTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionHelpersTests.swift; sourceTree = "<group>"; };
 		AA5FC2852E64D30957CAAAD0 /* UnlockCommandsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCommandsSettingsView.swift; sourceTree = "<group>"; };
 		AB1A4C29D972D3BB0A3848E2 /* TLSFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TLSFactory.swift; sourceTree = "<group>"; };
@@ -516,6 +518,7 @@
 			isa = PBXGroup;
 			children = (
 				A6187DA7FBB7E01B1FE06ACE /* MacMediaController.swift */,
+				AB12CD34EF56010203040540 /* MacAudioController.swift */,
 			);
 			path = Media;
 			sourceTree = "<group>";
@@ -1154,6 +1157,7 @@
 				90FF1B10114E63DB89B4F360 /* ContentView.swift in Sources */,
 				6202A2E420E817CB002646F0 /* DeviceRailView.swift in Sources */,
 				ACD47B85666BE7B217A1777A /* MacMediaController.swift in Sources */,
+				AB12CD34EF56010203040541 /* MacAudioController.swift in Sources */,
 				42867EF4BC8EB888692109C9 /* MacNotificationDelivery.swift in Sources */,
 				2C3B572C0588BC0FDF269C36 /* MainSplitView.swift in Sources */,
 				1FDA46FB16A800EB183427EB /* MenuBarView.swift in Sources */,
