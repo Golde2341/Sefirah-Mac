@@ -167,7 +167,7 @@
     "Clear All" : {
 
     },
-    "Clear the mirrored notification feed" : {
+    "Clear notifications on the phone and in the mirrored feed" : {
 
     },
     "Clipboard" : {
@@ -566,7 +566,7 @@
     "Remove command" : {
 
     },
-    "Remove notification" : {
+    "Remove from the feed and the phone" : {
 
     },
     "Remove this pairing and its cached data" : {

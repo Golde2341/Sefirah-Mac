@@ -27,7 +27,7 @@ struct NotificationFeedView: View {
                     Button("Clear All") { model.clearAllNotifications() }
                         .buttonStyle(.borderless)
                         .font(.caption)
-                        .help("Clear the mirrored notification feed")
+                        .help("Clear notifications on the phone and in the mirrored feed")
                 }
             }
             if model.notifications.isEmpty {
@@ -96,8 +96,39 @@ struct NotificationFeedView: View {
     /// A two-finger trackpad swipe arrives as a horizontal scroll gesture, not a mouse drag. Watch
     /// scroll events for the hovered card, drive the same slide-out state, and — once the gesture
     /// is clearly sideways — consume it so the list can't scroll vertically mid-swipe.
+    ///
+    /// Each gesture locks to one axis once its first few points read clearly horizontal or
+    /// vertical. A gesture that reads as a vertical scroll is never claimed for a card, so a
+    /// stray sideways wobble partway through scrolling can't suddenly slide a notification.
     private func installSwipeMonitor() {
         guard swipeMonitor == nil else { return }
+
+        // Axis-lock bookkeeping for the current trackpad gesture. `isVerticalGesture` also stands
+        // for "this gesture is finished or ignored; leave the rest of it alone".
+        var traveledX: CGFloat = 0
+        var traveledY: CGFloat = 0
+        var signedX: CGFloat = 0
+        var isAxisDecided = false
+        var isVerticalGesture = false
+
+        func resetAxisLock() {
+            traveledX = 0
+            traveledY = 0
+            signedX = 0
+            isAxisDecided = false
+            isVerticalGesture = false
+        }
+
+        func finishAxisLock() {
+            // Settling mid-gesture can be followed by stray `.changed` events; keep ignoring them
+            // until the next `.began` resets the lock.
+            traveledX = 0
+            traveledY = 0
+            signedX = 0
+            isAxisDecided = true
+            isVerticalGesture = true
+        }
+
         swipeMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
             let deltaX = event.scrollingDeltaX
             let deltaY = event.scrollingDeltaY
@@ -111,20 +142,62 @@ struct NotificationFeedView: View {
                     if phase == .ended || phase == .cancelled || phase == .none {
                         // Momentum after the release must not start a fresh swipe.
                         settleSwipe()
+                        finishAxisLock()
                     } else if !isMomentum, swipe.key != nil {
                         // Follow the fingers both ways: sliding back cancels the swipe.
                         swipe.offset = max(-500, min(80, swipe.offset + fingerDeltaX))
                     }
                     return true
                 }
-                guard !isMomentum, phase != .ended, phase != .cancelled else { return false }
+                guard !isMomentum else { return false }
+                switch phase {
+                case .began, .mayBegin:
+                    resetAxisLock()
+                    if phase == .mayBegin { return false }
+                case .ended, .cancelled:
+                    resetAxisLock()
+                    return false
+                default:
+                    break
+                }
+
+                // Lock the gesture's axis before caring which card it might start on, so the
+                // decision depends on the whole motion so far, not a single noisy event.
+                if phase != [], !isVerticalGesture {
+                    traveledX += abs(fingerDeltaX)
+                    traveledY += abs(deltaY)
+                    signedX += fingerDeltaX
+                    if !isAxisDecided {
+                        if traveledY > 6, traveledY > traveledX * 1.25 {
+                            isAxisDecided = true
+                            isVerticalGesture = true
+                        } else if traveledX > 6, traveledX > traveledY * 1.25 {
+                            isAxisDecided = true
+                        }
+                    }
+                }
+                if isVerticalGesture { return false }
+
                 if let hovered = hoveredKey, !model.notifications.contains(where: { $0.key == hovered }) {
                     hoveredKey = nil
                 }
-                guard let key = hoveredKey, abs(deltaX) > abs(deltaY), abs(deltaX) > 0.5 else { return false }
+                guard let key = hoveredKey else { return false }
+
+                if phase == .none {
+                    // Classic wheel or tilt: no gesture phases to lock; judge the event alone.
+                    guard abs(deltaX) > abs(deltaY) * 1.5, abs(deltaX) > 0.5 else { return false }
+                    swipe.key = key
+                    swipe.isLocked = true
+                    swipe.offset = max(-500, min(80, fingerDeltaX))
+                    return true
+                }
+
+                // Still ambiguous between scroll and swipe: hand it to the list for now.
+                guard isAxisDecided else { return false }
                 swipe.key = key
                 swipe.isLocked = true
-                swipe.offset = max(-500, min(80, fingerDeltaX))
+                // Start from the whole horizontal travel so far so the card doesn't lag behind.
+                swipe.offset = max(-500, min(80, signedX))
                 return true
             }
             return handled ? nil : event
@@ -150,6 +223,8 @@ private struct NotificationCard: View {
     let onSwipeChanged: (CGFloat) -> Void
     let onSwipeEnded: () -> Void
     @State private var isHovering = false
+    /// Axis chosen for the current mouse drag; once picked it can't change mid-drag.
+    @State private var dragAxis: Axis?
 
     private var offset: CGFloat {
         swipe.key == note.key ? swipe.offset : 0
@@ -170,7 +245,7 @@ private struct NotificationCard: View {
                 .padding(6)
                 .opacity(isHovering ? 1 : 0)
                 .animation(.easeInOut(duration: 0.12), value: isHovering)
-                .help("Remove notification")
+                .help("Remove from the feed and the phone")
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
             // Offset last so the hover ✕ rides along with the card instead of floating in place.
@@ -229,11 +304,22 @@ private struct NotificationCard: View {
     private var swipeToDelete: some Gesture {
         DragGesture(minimumDistance: 12)
             .onChanged { value in
-                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                // Pick the axis once per drag from the total translation so a vertical drag can
+                // never drift into a sideways slide partway through.
+                if dragAxis == nil {
+                    dragAxis = abs(value.translation.width) > abs(value.translation.height)
+                        ? .horizontal
+                        : .vertical
+                }
+                guard dragAxis == .horizontal else { return }
                 onSwipeChanged(value.translation.width)
             }
             .onEnded { _ in
-                onSwipeEnded()
+                let wasHorizontal = dragAxis == .horizontal
+                dragAxis = nil
+                if wasHorizontal {
+                    onSwipeEnded()
+                }
             }
     }
 }

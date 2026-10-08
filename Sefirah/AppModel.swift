@@ -871,10 +871,12 @@ final class AppModel: PairingDecider {
         }
     }
 
-    /// Deletes one mirrored notification from the feed and withdraws its delivered banner.
+    /// Deletes one mirrored notification from the feed, withdraws its delivered banner, and asks
+    /// the phone to cancel it in its shade too.
     func deleteNotification(_ note: NotificationSnapshot) {
         macNotifications.remove(notificationKey: note.notificationKey, from: note.deviceId)
         _ = try? hub.removeNotification(deviceId: note.deviceId, notificationKey: note.notificationKey)
+        session?.send(to: note.deviceId, hub.dismissNotification(notificationKey: note.notificationKey))
         if note.deviceId == selectedDeviceID {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
                 refreshDevice()
@@ -883,13 +885,14 @@ final class AppModel: PairingDecider {
     }
 
     /// Clears the mirrored notification feed for the selected device, withdrawing its delivered
-    /// macOS banners as well.
+    /// macOS banners, and dismisses the notifications on the phone too.
     func clearAllNotifications() {
         guard let deviceID = selectedDeviceID else { return }
         for note in notifications {
             macNotifications.remove(notificationKey: note.notificationKey, from: deviceID)
         }
         _ = try? hub.handle(deviceId: deviceID, .clearNotifications)
+        session?.send(to: deviceID, .clearNotifications)
         withAnimation(.spring(response: 0.32, dampingFraction: 0.9)) {
             refreshDevice()
         }

@@ -58,6 +58,13 @@ final class SocketMessageGoldenTests: XCTestCase {
         )
     }
 
+    func testNotificationDismiss() throws {
+        try assertGolden(
+            #"{"type":"NotificationInfo","notificationKey":"n1","infoType":"Removed","timestampMillis":0,"messages":[],"actions":[],"largeIcon":""}"#,
+            equals: .notificationInfo(NotificationInfo(notificationKey: "n1", infoType: .removed, timestampMillis: 0))
+        )
+    }
+
     func testAuthentication() throws {
         try assertGolden(
             #"{"type":"Authentication","deviceId":"dev-1","deviceName":"Pixel 8","publicKey":"MFkwEwYH","model":"shiba"}"#,

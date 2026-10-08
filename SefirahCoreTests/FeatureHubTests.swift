@@ -33,6 +33,11 @@ final class FeatureHubTests: XCTestCase {
         guard case .notificationAction(let invoked) = action else { return XCTFail("action") }
         XCTAssertEqual(invoked.actionIndex, 0)
 
+        let dismissal = hub.dismissNotification(notificationKey: "n1")
+        guard case .notificationInfo(let dismissed) = dismissal else { return XCTFail("dismissal") }
+        XCTAssertEqual(dismissed.infoType, .removed)
+        XCTAssertEqual(dismissed.notificationKey, "n1")
+
         _ = try hub.handle(deviceId: "phone", .clearNotifications)
         XCTAssertTrue(try hub.notifications(deviceId: "phone").isEmpty)
     }

@@ -202,6 +202,13 @@ public final class FeatureHub: @unchecked Sendable {
         )
     }
 
+    /// Outbound dismissal: asks the phone to cancel this notification in its shade as well
+    /// (`NotificationFeature.removeNotification` on Android). The phone answers with a `Removed`
+    /// echo, which is a no-op here because the row is already gone.
+    public func dismissNotification(notificationKey: String) -> SocketMessage {
+        .notificationInfo(NotificationInfo(notificationKey: notificationKey, infoType: .removed, timestampMillis: 0))
+    }
+
     public func setRingerMode(_ mode: Int) -> SocketMessage {
         .ringerModeState(RingerModeState(mode: mode))
     }
