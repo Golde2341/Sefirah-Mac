@@ -27,6 +27,9 @@ public struct DeviceSettings: Codable, Sendable, Equatable {
 
     public var scrcpyPath: String
     public var screenOff: Bool
+    /// Turn the phone screen off when launching an app, composing with `screenOff`; off keeps
+    /// the phone screen on for app launches while full-screen mirroring still follows `screenOff`.
+    public var screenOffOnAppLaunch: Bool
     public var physicalKeyboard: Bool
     public var scrcpyClipboardAutosync: Bool
     public var unlockDeviceBeforeLaunch: Bool
@@ -88,6 +91,7 @@ public struct DeviceSettings: Codable, Sendable, Equatable {
         storageAccess = true
         scrcpyPath = ""
         screenOff = true
+        screenOffOnAppLaunch = true
         physicalKeyboard = false
         scrcpyClipboardAutosync = false
         unlockDeviceBeforeLaunch = false
@@ -149,6 +153,7 @@ public struct DeviceSettings: Codable, Sendable, Equatable {
         d.storageAccess = try c.decodeIfPresent(Bool.self, forKey: .storageAccess) ?? d.storageAccess
         d.scrcpyPath = try c.decodeIfPresent(String.self, forKey: .scrcpyPath) ?? d.scrcpyPath
         d.screenOff = try c.decodeIfPresent(Bool.self, forKey: .screenOff) ?? d.screenOff
+        d.screenOffOnAppLaunch = try c.decodeIfPresent(Bool.self, forKey: .screenOffOnAppLaunch) ?? d.screenOffOnAppLaunch
         d.physicalKeyboard = try c.decodeIfPresent(Bool.self, forKey: .physicalKeyboard) ?? d.physicalKeyboard
         d.scrcpyClipboardAutosync = try c.decodeIfPresent(Bool.self, forKey: .scrcpyClipboardAutosync) ?? d.scrcpyClipboardAutosync
         d.unlockDeviceBeforeLaunch = try c.decodeIfPresent(Bool.self, forKey: .unlockDeviceBeforeLaunch) ?? d.unlockDeviceBeforeLaunch

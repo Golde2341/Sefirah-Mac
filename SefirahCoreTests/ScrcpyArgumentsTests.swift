@@ -73,4 +73,18 @@ final class ScrcpyArgumentsTests: XCTestCase {
         let args = ScrcpyArguments.build(settings: DeviceSettings(deviceId: "d"), serial: nil)
         XCTAssertEqual(args, ["--turn-screen-off", "--no-clipboard-autosync", "--max-fps=60", "--display-id=0"])
     }
+
+    func testAppLaunchScreenOffToggle() {
+        var s = settings()
+        s.screenOff = true
+
+        // App launches keep the phone screen on while full-screen mirroring still turns it off.
+        s.screenOffOnAppLaunch = false
+        XCTAssertFalse(ScrcpyArguments.build(settings: s, serial: nil, package: "com.x").contains("--turn-screen-off"))
+        XCTAssertTrue(ScrcpyArguments.build(settings: s, serial: nil).contains("--turn-screen-off"))
+
+        // Enabling it turns the screen off for app launches too.
+        s.screenOffOnAppLaunch = true
+        XCTAssertTrue(ScrcpyArguments.build(settings: s, serial: nil, package: "com.x").contains("--turn-screen-off"))
+    }
 }

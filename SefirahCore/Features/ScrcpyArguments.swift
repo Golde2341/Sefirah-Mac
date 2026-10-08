@@ -21,7 +21,10 @@ public enum ScrcpyArguments {
             args.append("-s")
             args.append(serial)
         }
-        if settings.screenOff { args.append("--turn-screen-off") }
+        // App launches can keep the phone screen on independently of full-screen mirroring.
+        if settings.screenOff, package == nil || settings.screenOffOnAppLaunch {
+            args.append("--turn-screen-off")
+        }
         if settings.physicalKeyboard { args.append("--keyboard=uhid") }
         if !settings.scrcpyClipboardAutosync { args.append("--no-clipboard-autosync") }
         if settings.disableVideoForwarding { args.append("--no-video") }

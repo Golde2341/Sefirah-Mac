@@ -454,6 +454,9 @@ public final class FeatureHub: @unchecked Sendable {
 
     private func persistApp(deviceId: String, _ app: ApplicationInfo) throws {
         let appKey = "\(deviceId):\(app.packageName)"
+        // Render the launcher icon once (small iOS-shaped PNG) so list/grid views never re-decode
+        // the phone's base64 bitmap while scrolling. A missing icon keeps what we already stored.
+        let icon = app.appIcon.flatMap { NotificationAttachmentImage.decodeAsAppIcon($0, size: 128) }
         try database.dbQueue.write { db in
             let existing = try ApplicationRecord.fetchOne(db, key: appKey)
             let record = ApplicationRecord(
@@ -462,7 +465,8 @@ public final class FeatureHub: @unchecked Sendable {
                 packageName: app.packageName,
                 appName: app.appName,
                 pinned: existing?.pinned ?? false,
-                filter: existing?.filter ?? .toastFeed
+                filter: existing?.filter ?? .toastFeed,
+                icon: icon ?? existing?.icon
             )
             try record.save(db)
         }

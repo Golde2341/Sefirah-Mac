@@ -263,6 +263,9 @@
     "Done" : {
 
     },
+    "Double grid" : {
+
+    },
     "External scrcpy window" : {
 
     },
@@ -296,10 +299,16 @@
     "Forward mouse hover" : {
 
     },
+    "Full-screen mirroring still follows \"Turn phone screen off while mirroring\"." : {
+
+    },
     "General" : {
 
     },
     "Get Started" : {
+
+    },
+    "Grid" : {
 
     },
     "H.264" : {
@@ -326,9 +335,6 @@
     "key=value pairs (e.g. stay_awake=true show_touches=true)" : {
 
     },
-    "Launch" : {
-
-    },
     "Launch an app…" : {
 
     },
@@ -336,6 +342,9 @@
 
     },
     "Light" : {
+
+    },
+    "List" : {
 
     },
     "Listening on port %lld" : {
@@ -497,7 +506,7 @@
     "Physical keyboard (UHID)" : {
 
     },
-    "Pin %@" : {
+    "Pin" : {
 
     },
     "PIN lockscreen" : {
@@ -692,6 +701,9 @@
     "Touches and keys are injected by scrcpy-server through ADB. Some phones block this until an extra developer option is enabled:" : {
 
     },
+    "Turn off the phone screen while projecting an app" : {
+
+    },
     "Turn phone screen off while mirroring" : {
 
     },
@@ -701,7 +713,7 @@
     "Unmute Audio" : {
 
     },
-    "Unpin %@" : {
+    "Unpin" : {
 
     },
     "Use external scrcpy" : {
@@ -717,6 +729,9 @@
 
     },
     "Video" : {
+
+    },
+    "View" : {
 
     },
     "Virtual display size (WxH[/dpi], empty = phone size)" : {

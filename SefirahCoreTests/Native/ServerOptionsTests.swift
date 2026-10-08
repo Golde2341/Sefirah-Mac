@@ -113,6 +113,12 @@ final class ServerOptionsTests: XCTestCase {
         XCTAssertEqual(ServerOptionsBuilder.startupActions(settings: settings(), package: nil), [])
     }
 
+    func testStartupActionsRespectAppLaunchScreenOff() {
+        let s = settings { $0.screenOff = true; $0.screenOffOnAppLaunch = false }
+        XCTAssertEqual(ServerOptionsBuilder.startupActions(settings: s, package: "com.x"), [.startApp("com.x")])
+        XCTAssertEqual(ServerOptionsBuilder.startupActions(settings: s, package: nil), [.displayPower(on: false)])
+    }
+
     func testVerboseLogs() throws {
         let r = try ServerOptionsBuilder.build(settings: settings(), package: nil, scid: 1, av1Supported: false, verboseLogs: true)
         XCTAssertEqual(r.options.logLevel, "debug")

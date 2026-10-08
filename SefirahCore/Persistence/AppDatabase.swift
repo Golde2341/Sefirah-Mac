@@ -155,6 +155,11 @@ public struct AppDatabase: Sendable {
             try db.execute(sql: "CREATE INDEX idx_notification_device ON NotificationEntity(DeviceId)")
             try db.execute(sql: "INSERT INTO SchemaVersionEntity (Version) VALUES (5)")
         }
+        migrator.registerMigration("v6") { db in
+            // App launcher icons (iOS-shaped PNGs rendered when the phone's app list syncs).
+            try db.execute(sql: "ALTER TABLE ApplicationEntity ADD COLUMN Icon BLOB")
+            try db.execute(sql: "INSERT INTO SchemaVersionEntity (Version) VALUES (6)")
+        }
         return migrator
     }
 }

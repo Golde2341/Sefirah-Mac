@@ -432,3 +432,7 @@ xcuserdata/
 Vendor/scrcpy/*
 !Vendor/scrcpy/README.md
 !Vendor/scrcpy/NOTICES.md
+
+# Local release artifacts
+/dist/
+/build/

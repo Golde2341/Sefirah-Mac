@@ -21,8 +21,10 @@ struct MainSplitView: View {
                     Text("Settings").tag(MainTab.settings)
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
+                .controlSize(.small)
                 .frame(maxWidth: 420)
-                .padding(.vertical, 10)
+                .padding(.vertical, 6)
 
                 Divider()
 

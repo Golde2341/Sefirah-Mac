@@ -133,6 +133,8 @@ public struct ApplicationRecord: Codable, FetchableRecord, PersistableRecord, Se
     public var appName: String
     public var pinned: Bool
     public var filter: NotificationFilter
+    /// iOS-shaped PNG rendered from the phone's launcher icon when the app list syncs.
+    public var icon: Data?
 
     public init(
         appKey: String,
@@ -140,7 +142,8 @@ public struct ApplicationRecord: Codable, FetchableRecord, PersistableRecord, Se
         packageName: String,
         appName: String,
         pinned: Bool = false,
-        filter: NotificationFilter = .toastFeed
+        filter: NotificationFilter = .toastFeed,
+        icon: Data? = nil
     ) {
         self.appKey = appKey
         self.deviceId = deviceId
@@ -148,6 +151,7 @@ public struct ApplicationRecord: Codable, FetchableRecord, PersistableRecord, Se
         self.appName = appName
         self.pinned = pinned
         self.filter = filter
+        self.icon = icon
     }
 
     enum CodingKeys: String, CodingKey {
@@ -157,6 +161,7 @@ public struct ApplicationRecord: Codable, FetchableRecord, PersistableRecord, Se
         case appName = "AppName"
         case pinned = "Pinned"
         case filter = "Filter"
+        case icon = "Icon"
     }
 }
 

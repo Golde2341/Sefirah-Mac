@@ -198,7 +198,10 @@ public enum ServerOptionsBuilder {
     /// Order: display power, UHID keyboard, start app.
     public static func startupActions(settings: DeviceSettings, package: String?) -> [StartupAction] {
         var actions: [StartupAction] = []
-        if settings.screenOff { actions.append(.displayPower(on: false)) }
+        // App launches can keep the phone screen on independently of full-screen mirroring.
+        if settings.screenOff, package == nil || settings.screenOffOnAppLaunch {
+            actions.append(.displayPower(on: false))
+        }
         if settings.physicalKeyboard { actions.append(.uhidKeyboard) }
         if let package = package.flatMap(nonempty) { actions.append(.startApp(package)) }
         return actions

@@ -2,10 +2,10 @@ import SefirahCore
 import XCTest
 
 final class AppDatabaseTests: XCTestCase {
-    func testSchemaVersionIsFive() throws {
+    func testSchemaVersionIsSix() throws {
         let db = try AppDatabase(inMemory: ())
         XCTAssertEqual(db.schemaVersion, SefirahConstants.schemaVersion)
-        XCTAssertEqual(db.schemaVersion, 5)
+        XCTAssertEqual(db.schemaVersion, 6)
     }
 
     func testLocalAndPairedDeviceRoundTrip() throws {

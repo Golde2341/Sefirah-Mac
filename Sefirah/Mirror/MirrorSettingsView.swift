@@ -74,6 +74,8 @@ struct MirrorSettingsView: View {
             Toggle("Open apps on a virtual display", isOn: bind(id, \.isVirtualDisplayEnabled))
             TextField("Virtual display size (WxH[/dpi], empty = phone size)", text: bind(id, \.virtualDisplaySize))
             Toggle("Flexible display (resize with the window)", isOn: bind(id, \.flexDisplay))
+            Toggle("Turn off the phone screen while projecting an app", isOn: bind(id, \.screenOffOnAppLaunch))
+                .help("Full-screen mirroring still follows \"Turn phone screen off while mirroring\".")
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Unlock commands")

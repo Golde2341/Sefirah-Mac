@@ -1,3 +1,4 @@
+import AppKit
 import SefirahCore
 import XCTest
 
@@ -210,6 +211,38 @@ final class FeatureHubTests: XCTestCase {
         guard case .clipboardInfo(let info) = clip else { return XCTFail("clipboard") }
         XCTAssertEqual(info.clipboardType, "text/plain")
         XCTAssertEqual(info.content, "from-mac")
+    }
+
+    func testAppListStoresShapedIcon() throws {
+        let hub = try makeHub()
+        let png = try sampleIconPNG()
+        _ = try hub.handle(deviceId: "phone", .applicationInfo(
+            ApplicationInfo(packageName: "com.x", appName: "X", appIcon: png.base64EncodedString())
+        ))
+        let app = try XCTUnwrap(hub.apps(deviceId: "phone").first)
+        let icon = try XCTUnwrap(app.icon)
+        XCTAssertNotNil(NSImage(data: icon))
+
+        // A later sync without an icon keeps what was stored.
+        _ = try hub.handle(deviceId: "phone", .applicationInfo(
+            ApplicationInfo(packageName: "com.x", appName: "X")
+        ))
+        XCTAssertEqual(try hub.apps(deviceId: "phone").first?.icon, icon)
+    }
+
+    private func sampleIconPNG() throws -> Data {
+        let size = 64
+        let rep = try XCTUnwrap(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: size, pixelsHigh: size, bitsPerSample: 8,
+            samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+            bytesPerRow: 0, bitsPerPixel: 0
+        ))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        NSColor.systemTeal.setFill()
+        NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: size, height: size)).fill()
+        NSGraphicsContext.restoreGraphicsState()
+        return try XCTUnwrap(rep.representation(using: .png, properties: [:]))
     }
 
     private func makeHub() throws -> FeatureHub {
