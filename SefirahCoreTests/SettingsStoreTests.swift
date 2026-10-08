@@ -67,6 +67,20 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertFalse(try store.loadGeneral().showNotificationIcons)
     }
 
+    func testMenuBarMediaPlayerRoundTrip() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let store = SettingsStore(directory: directory)
+        XCTAssertTrue(try store.loadGeneral().menuBarMediaPlayer)
+
+        var updated = try store.loadGeneral()
+        updated.menuBarMediaPlayer = false
+        try store.saveGeneral(updated)
+        XCTAssertFalse(try store.loadGeneral().menuBarMediaPlayer)
+    }
+
     func testAutoReconnectRoundTrip() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")

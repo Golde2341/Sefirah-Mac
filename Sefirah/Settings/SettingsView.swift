@@ -35,6 +35,8 @@ struct SettingsView: View {
                 Text("Choose which buttons appear in the menu bar menu.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Media player", isOn: $model.general.menuBarMediaPlayer)
+                    .onChange(of: model.general.menuBarMediaPlayer) { model.saveGeneral() }
                 Toggle("Open apps", isOn: $model.general.menuBarOpenApps)
                     .onChange(of: model.general.menuBarOpenApps) { model.saveGeneral() }
                 Toggle("Screen mirror", isOn: $model.general.menuBarScreenMirror)

@@ -43,6 +43,10 @@ public struct DeviceLiveState: Equatable, Sendable {
     public var playback: [PlaybackInfo]
     /// Wall-clock moment each session was last seen paused (used to drop stale player cards).
     public var pausedSince: [String: Date]
+    /// When the current connection opened; sessions updated before it belong to a previous one.
+    public var connectedAt: Date?
+    /// Last update time per playback source, used with `connectedAt` to hide stale media.
+    public var playbackUpdatedAt: [String: Date]
     public var audioStreams: [AudioStreamType: Int]
     public var incomingCall: CallInfo?
     public var clipboard: ClipboardInfo?
@@ -54,6 +58,8 @@ public struct DeviceLiveState: Equatable, Sendable {
     public init() {
         playback = []
         pausedSince = [:]
+        connectedAt = nil
+        playbackUpdatedAt = [:]
         audioStreams = [
             .media: 0,
             .ring: 0,
@@ -144,7 +150,9 @@ public final class FeatureHub: @unchecked Sendable {
             if playback.infoType == .removedSession {
                 state.playback.removeAll { $0.source == playback.source }
                 state.pausedSince[playback.source] = nil
+                state.playbackUpdatedAt[playback.source] = nil
             } else {
+                state.playbackUpdatedAt[playback.source] = Date()
                 if playback.isPlaying {
                     state.pausedSince[playback.source] = nil
                 } else if state.pausedSince[playback.source] == nil {
@@ -370,13 +378,26 @@ public final class FeatureHub: @unchecked Sendable {
         return record.filter != .disabled
     }
 
-    /// Forgets playback sessions for a device — called when it connects or disconnects so the
-    /// menu bar player never shows media from before the current connection.
-    public func resetPlaybackState(deviceId: String) {
+    /// Records when the current connection opened (nil on disconnect). Sessions are kept — a
+    /// transport-only update after a reconnect then merges into the full pre-existing snapshot —
+    /// but `visiblePlayback` only surfaces sessions updated after this moment.
+    public func markPlaybackConnection(deviceId: String, connectedAt: Date?) {
         lock.lock()
         defer { lock.unlock() }
-        live[deviceId]?.playback = []
-        live[deviceId]?.pausedSince = [:]
+        var state = live[deviceId] ?? DeviceLiveState()
+        state.connectedAt = connectedAt
+        live[deviceId] = state
+    }
+
+    /// Sessions that have played (been updated) since the current connection — what the rail and
+    /// menu bar player should show.
+    public func visiblePlayback(deviceId: String) -> [PlaybackInfo] {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let state = live[deviceId], let connectedAt = state.connectedAt else { return [] }
+        return state.playback.filter { session in
+            (state.playbackUpdatedAt[session.source] ?? .distantPast) > connectedAt
+        }
     }
 
     /// Drops sessions paused for longer than `maxAge`. Returns true when something was removed.

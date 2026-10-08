@@ -17,7 +17,7 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
-            if let session = model.live.playback.first {
+            if model.general.menuBarMediaPlayer, let session = model.visiblePlayback.first {
                 mediaChip(session)
             }
             if let note = model.notifications.first {
@@ -139,9 +139,9 @@ struct MenuBarView: View {
                 HStack {
                     Spacer(minLength: 0)
                     HStack(spacing: 3) {
-                        Image(systemName: "iphone")
+                        Image(systemName: outputIconName)
                             .font(.system(size: 9, weight: .semibold))
-                        Text(model.selectedDevice?.name ?? "This phone")
+                        Text(model.phoneMediaOutputLabel ?? model.selectedDevice?.name ?? "This phone")
                             .font(.system(size: 10, weight: .medium))
                             .lineLimit(1)
                     }
@@ -177,10 +177,11 @@ struct MenuBarView: View {
                     }
                 }
 
-                HStack(spacing: 8) {
-                    glassCircleButton("backward.fill", diameter: 26, fontSize: 10) {
+                HStack(spacing: 6) {
+                    transportButton("backward.fill") {
                         model.sendMediaAction(.previous, source: session.source)
                     }
+
                     if let max = session.maxSeekTime, max > 0 {
                         Slider(
                             value: Binding(
@@ -195,12 +196,13 @@ struct MenuBarView: View {
                     } else {
                         Spacer()
                     }
-                    glassCircleButton("forward.fill", diameter: 26, fontSize: 10) {
+                    transportButton("forward.fill") {
                         model.sendMediaAction(.next, source: session.source)
                     }
                 }
+                .padding(.horizontal, -4)
         }
-        .padding(10)
+        .padding(12)
         // The art is a background so it can't stretch the card layout; the content defines the size.
         .frame(height: 122)
         .frame(maxWidth: .infinity)
@@ -241,6 +243,26 @@ struct MenuBarView: View {
                         .foregroundStyle(.secondary.opacity(0.6))
                 }
         }
+    }
+
+    private var outputIconName: String {
+        guard let label = model.phoneMediaOutputLabel else { return "iphone" }
+        if label.contains("Headphones") { return "headphones" }
+        if label.contains("Bluetooth") { return "antenna.radiowaves.left.and.right" }
+        return "speaker.wave.2.fill"
+    }
+
+    /// Borderless transport glyph for the skip buttons — no glass disc, so it can hug the edge.
+    private func transportButton(_ symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.6), radius: 3, y: 1)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func glassCircleButton(

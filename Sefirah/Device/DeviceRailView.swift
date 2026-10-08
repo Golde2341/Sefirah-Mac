@@ -60,7 +60,7 @@ struct DeviceRailView: View {
                 }
                 .controlSize(.small)
 
-                ForEach(model.live.playback, id: \.source) { session in
+                ForEach(model.visiblePlayback, id: \.source) { session in
                     mediaCard(session, connected: device.isConnected)
                 }
                 NotificationFeedView(model: model)

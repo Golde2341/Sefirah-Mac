@@ -255,6 +255,35 @@ public enum CompanionWake {
     ]
 }
 
+/// Parses the phone's active media output route out of `adb shell dumpsys audio`.
+public enum PhoneAudioRoute {
+    /// Human label for the media stream's active output: "Phone speakers", "Bluetooth device" or
+    /// "Headphones". Nil when the dump doesn't say or the route is something else.
+    public static func label(fromDumpsysAudio dump: String) -> String? {
+        var inMusicStream = false
+        for rawLine in dump.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("- STREAM_MUSIC") {
+                inMusicStream = true
+                continue
+            }
+            if line.hasPrefix("- STREAM_") {
+                inMusicStream = false
+                continue
+            }
+            guard inMusicStream, line.hasPrefix("Devices:") else { continue }
+            let devices = line.lowercased()
+            if devices.contains("speaker") { return "Phone speakers" }
+            if devices.contains("bt_") || devices.contains("bluetooth") { return "Bluetooth device" }
+            if devices.contains("wired") || devices.contains("headset") || devices.contains("headphones") {
+                return "Headphones"
+            }
+            return nil
+        }
+        return nil
+    }
+}
+
 /// Android key codes for the media transport controls. Sent over adb when the phone is
 /// reachable, since the companion app cannot dispatch media sessions with the screen off.
 public enum MediaKeyEvent {

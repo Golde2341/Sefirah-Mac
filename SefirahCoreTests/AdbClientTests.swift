@@ -111,6 +111,37 @@ final class AdbClientTests: XCTestCase {
         }
     }
 
+    func testPhoneAudioRouteParsing() {
+        let speaker = """
+        - STREAM_VOICE_CALL:
+           Devices: earpiece(1), speaker(2)
+        - STREAM_MUSIC:
+           Muted: false
+           streamVolume:80
+           Devices: speaker(2)
+        - STREAM_ALARM:
+           Devices: speaker(2)
+        """
+        XCTAssertEqual(PhoneAudioRoute.label(fromDumpsysAudio: speaker), "Phone speakers")
+
+        let bluetooth = """
+        - STREAM_MUSIC:
+           streamVolume:80
+           Devices: bt_a2dp(80)
+        - STREAM_ALARM:
+           Devices: speaker(2)
+        """
+        XCTAssertEqual(PhoneAudioRoute.label(fromDumpsysAudio: bluetooth), "Bluetooth device")
+
+        let wired = """
+        - STREAM_MUSIC:
+           Devices: wired_headphones(8)
+        """
+        XCTAssertEqual(PhoneAudioRoute.label(fromDumpsysAudio: wired), "Headphones")
+
+        XCTAssertNil(PhoneAudioRoute.label(fromDumpsysAudio: ""))
+    }
+
     func testSpawnFailurePropagates() async {
         let runner = FakeCommandRunner([.spawnError])
         do {

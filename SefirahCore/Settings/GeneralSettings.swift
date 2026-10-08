@@ -27,6 +27,8 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
     public var restartAdbServerOnLaunch: Bool
     /// Continuously push the Mac clipboard to the phone as it changes.
     public var syncClipboardToPhone: Bool
+    /// Menu bar panel: show the media player card when the phone plays something.
+    public var menuBarMediaPlayer: Bool
     /// Menu bar panel: show the Open apps submenu.
     public var menuBarOpenApps: Bool
     /// Menu bar panel: show the Screen mirror button.
@@ -58,6 +60,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         autoReconnect: Bool = false,
         restartAdbServerOnLaunch: Bool = false,
         syncClipboardToPhone: Bool = false,
+        menuBarMediaPlayer: Bool = true,
         menuBarOpenApps: Bool = true,
         menuBarScreenMirror: Bool = true,
         menuBarDnd: Bool = true,
@@ -82,6 +85,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         self.autoReconnect = autoReconnect
         self.restartAdbServerOnLaunch = restartAdbServerOnLaunch
         self.syncClipboardToPhone = syncClipboardToPhone
+        self.menuBarMediaPlayer = menuBarMediaPlayer
         self.menuBarOpenApps = menuBarOpenApps
         self.menuBarScreenMirror = menuBarScreenMirror
         self.menuBarDnd = menuBarDnd
@@ -111,6 +115,7 @@ public struct GeneralSettings: Codable, Sendable, Equatable {
         autoReconnect = try c.decodeIfPresent(Bool.self, forKey: .autoReconnect) ?? defaults.autoReconnect
         restartAdbServerOnLaunch = try c.decodeIfPresent(Bool.self, forKey: .restartAdbServerOnLaunch) ?? defaults.restartAdbServerOnLaunch
         syncClipboardToPhone = try c.decodeIfPresent(Bool.self, forKey: .syncClipboardToPhone) ?? defaults.syncClipboardToPhone
+        menuBarMediaPlayer = try c.decodeIfPresent(Bool.self, forKey: .menuBarMediaPlayer) ?? defaults.menuBarMediaPlayer
         menuBarOpenApps = try c.decodeIfPresent(Bool.self, forKey: .menuBarOpenApps) ?? defaults.menuBarOpenApps
         menuBarScreenMirror = try c.decodeIfPresent(Bool.self, forKey: .menuBarScreenMirror) ?? defaults.menuBarScreenMirror
         menuBarDnd = try c.decodeIfPresent(Bool.self, forKey: .menuBarDnd) ?? defaults.menuBarDnd

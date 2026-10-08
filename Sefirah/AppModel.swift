@@ -108,6 +108,8 @@ final class AppModel: PairingDecider {
     private var macPlaybackSources: [String: Set<String>] = [:]
     /// Paired-device adb serials, refreshed periodically; media transport prefers these keys.
     private var adbSerials: [String: String] = [:]
+    /// "Phone speakers" while the phone's media stream routes to its internal speaker.
+    private(set) var phoneMediaOutputLabel: String?
     private var maintenanceTask: Task<Void, Never>?
 
     init() {
@@ -226,6 +228,7 @@ final class AppModel: PairingDecider {
             guard let self else { return }
             while !Task.isCancelled {
                 await self.refreshAdbOnlineState()
+                await self.refreshPhoneMediaOutput()
                 var pruned = false
                 for device in self.paired {
                     pruned = self.hub.prunePausedPlayback(deviceId: device.id, maxAge: 600) || pruned
@@ -238,6 +241,12 @@ final class AppModel: PairingDecider {
 
     var selectedDevice: ConnectedPeer? {
         paired.first { $0.id == selectedDeviceID }
+    }
+
+    /// Playback sessions that started after the current connection (used by the rail and menu bar).
+    var visiblePlayback: [PlaybackInfo] {
+        guard let deviceID = selectedDeviceID else { return [] }
+        return hub.visiblePlayback(deviceId: deviceID)
     }
 
     func completeOnboarding() {
@@ -490,6 +499,30 @@ final class AppModel: PairingDecider {
             adbSerials[device.id] = nil
             return false
         }
+    }
+
+    /// Checks the phone's active media output route over adb (`dumpsys audio`) so the menu bar
+    /// player can say "Phone speakers" when the internal speaker is in use.
+    private func refreshPhoneMediaOutput() async {
+        guard let deviceID = selectedDeviceID,
+              let serial = adbSerials[deviceID],
+              let adb = resolvedAdb,
+              !visiblePlayback.isEmpty
+        else {
+            phoneMediaOutputLabel = nil
+            return
+        }
+        var env = ProcessInfo.processInfo.environment
+        if env["HOME"] == nil { env["HOME"] = NSHomeDirectory() }
+        if env["PATH"] == nil { env["PATH"] = ScrcpyLaunchPlanner.defaultPath }
+        let client = AdbClient(adb: adb, environment: env, runner: commandRunner)
+        guard let result = try? await client.shell(serial: serial, ["dumpsys", "audio"], timeout: 8),
+              result.exitCode == 0
+        else {
+            phoneMediaOutputLabel = nil
+            return
+        }
+        phoneMediaOutputLabel = PhoneAudioRoute.label(fromDumpsysAudio: result.stdout)
     }
 
     /// Re-checks which paired phones currently show up in `adb devices`.
@@ -1158,8 +1191,8 @@ final class AppModel: PairingDecider {
             upsertPaired(peer)
             selectedDeviceID = peer.id
             completeOnboarding()
-            // Media from before this connection must not surface.
-            hub.resetPlaybackState(deviceId: peer.id)
+            // Sessions from before this connection stay hidden until they update again.
+            hub.markPlaybackConnection(deviceId: peer.id, connectedAt: Date())
             refreshDevice()
             sendActionList(to: peer.id)
             session?.send(to: peer.id, .requestApplicationList)
@@ -1170,7 +1203,7 @@ final class AppModel: PairingDecider {
             if let index = paired.firstIndex(where: { $0.id == deviceId }) {
                 paired[index].isConnected = false
             }
-            hub.resetPlaybackState(deviceId: deviceId)
+            hub.markPlaybackConnection(deviceId: deviceId, connectedAt: nil)
             if selectedDeviceID == deviceId { refreshDevice() }
             if !forced {
                 session?.reconnectPairedDevices()

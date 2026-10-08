@@ -313,13 +313,23 @@ final class FeatureHubTests: XCTestCase {
         XCTAssertTrue(hub.liveState(deviceId: "phone").playback.isEmpty)
     }
 
-    func testResetPlaybackStateClearsSessions() throws {
+    func testPlaybackConnectionEpochHidesPreConnectionSessions() throws {
         let hub = try makeHub()
         _ = try hub.handle(deviceId: "phone", .playbackInfo(
             PlaybackInfo(infoType: .playbackInfo, source: "a", trackTitle: "A", isPlaying: true)
         ))
-        hub.resetPlaybackState(deviceId: "phone")
-        XCTAssertTrue(hub.liveState(deviceId: "phone").playback.isEmpty)
+        // No live connection recorded yet.
+        XCTAssertTrue(hub.visiblePlayback(deviceId: "phone").isEmpty)
+
+        // Updated after the connection opened -> visible.
+        hub.markPlaybackConnection(deviceId: "phone", connectedAt: Date().addingTimeInterval(-10))
+        XCTAssertEqual(hub.visiblePlayback(deviceId: "phone").count, 1)
+
+        // A fresh connection hides the old update until it plays again, but the full snapshot is
+        // kept so a transport-only update can still merge into it.
+        hub.markPlaybackConnection(deviceId: "phone", connectedAt: Date())
+        XCTAssertTrue(hub.visiblePlayback(deviceId: "phone").isEmpty)
+        XCTAssertFalse(hub.liveState(deviceId: "phone").playback.isEmpty)
     }
 
     func testTransportKeyCodes() {
