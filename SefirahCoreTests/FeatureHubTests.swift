@@ -294,6 +294,98 @@ final class FeatureHubTests: XCTestCase {
         XCTAssertEqual(try hub.notifications(deviceId: "phone").map(\.notificationKey), ["n2"])
     }
 
+    func testHiddenAppNotificationsStayMutedUntilAllowed() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .applicationInfo(
+            ApplicationInfo(packageName: "com.secret", appName: "Secret")
+        ))
+        _ = try hub.handle(deviceId: "phone", .notificationInfo(NotificationInfo(
+            notificationKey: "s1", infoType: .new, timestampMillis: 1,
+            appPackage: "com.secret", appName: "Secret", title: "Hi", text: "there"
+        )))
+        XCTAssertTrue(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.secret"))
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+
+        // Hiding the app mutes its notifications (banners and feed)…
+        try hub.setAppHidden(deviceId: "phone", packageName: "com.secret", isHidden: true)
+        XCTAssertTrue(hub.isAppHidden(deviceId: "phone", packageName: "com.secret"))
+        XCTAssertFalse(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.secret"))
+        XCTAssertTrue(try hub.notifications(deviceId: "phone").isEmpty)
+
+        // …until the user allows them while the app stays hidden.
+        try hub.setAppHiddenNotificationsEnabled(deviceId: "phone", packageName: "com.secret", isEnabled: true)
+        XCTAssertTrue(hub.isAppHidden(deviceId: "phone", packageName: "com.secret"))
+        XCTAssertTrue(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.secret"))
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+
+        // Muting an app wins even when its hidden notifications are allowed.
+        try hub.setAppNotificationsEnabled(deviceId: "phone", packageName: "com.secret", isEnabled: false)
+        XCTAssertFalse(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.secret"))
+        XCTAssertTrue(try hub.notifications(deviceId: "phone").isEmpty)
+
+        // Unhiding restores the per-app filter as the only deciding factor.
+        try hub.setAppHidden(deviceId: "phone", packageName: "com.secret", isHidden: false)
+        XCTAssertFalse(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.secret"))
+
+        try hub.setAppNotificationsEnabled(deviceId: "phone", packageName: "com.secret", isEnabled: true)
+        XCTAssertTrue(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.secret"))
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+    }
+
+    func testMutingNotificationOnlyAppRegistersPlaceholder() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .notificationInfo(NotificationInfo(
+            notificationKey: "n1", infoType: .new, timestampMillis: 1,
+            appPackage: "android", appName: "Android System", title: "Battery low", text: "20%"
+        )))
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+        XCTAssertTrue(try hub.apps(deviceId: "phone").isEmpty)
+
+        // Hiding from the notification's context menu registers a manageable placeholder record.
+        try hub.setNotificationOnlyAppFilter(
+            deviceId: "phone", packageName: "android", appName: "Android System", filter: .disabled
+        )
+        XCTAssertTrue(try hub.notifications(deviceId: "phone").isEmpty)
+        let record = try XCTUnwrap(hub.apps(deviceId: "phone").first { $0.packageName == "android" })
+        XCTAssertEqual(record.filter, .disabled)
+        XCTAssertEqual(record.appName, "Android System")
+        XCTAssertFalse(record.hidden)
+
+        // Showing notifications through the record lets the stored notification back into the feed.
+        try hub.setAppNotificationsEnabled(deviceId: "phone", packageName: "android", isEnabled: true)
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+    }
+
+    func testMuteKeepsNotificationsInFeedWithoutBanners() throws {
+        let hub = try makeHub()
+        _ = try hub.handle(deviceId: "phone", .applicationInfo(
+            ApplicationInfo(packageName: "com.chat", appName: "Chat")
+        ))
+        _ = try hub.handle(deviceId: "phone", .notificationInfo(NotificationInfo(
+            notificationKey: "n1", infoType: .new, timestampMillis: 1,
+            appPackage: "com.chat", appName: "Chat", title: "Hi", text: "there"
+        )))
+
+        // Default level: banner and feed.
+        XCTAssertTrue(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.chat"))
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+
+        // Muted: no banner, but the notification still lands in the feed.
+        try hub.setAppNotificationFilter(deviceId: "phone", packageName: "com.chat", filter: .feed)
+        XCTAssertFalse(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.chat"))
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+
+        // Hidden: gone from the feed too.
+        try hub.setAppNotificationFilter(deviceId: "phone", packageName: "com.chat", filter: .disabled)
+        XCTAssertFalse(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.chat"))
+        XCTAssertTrue(try hub.notifications(deviceId: "phone").isEmpty)
+
+        // Back to normal.
+        try hub.setAppNotificationFilter(deviceId: "phone", packageName: "com.chat", filter: .toastFeed)
+        XCTAssertTrue(hub.shouldShowNotificationBanner(deviceId: "phone", packageName: "com.chat"))
+        XCTAssertEqual(try hub.notifications(deviceId: "phone").count, 1)
+    }
+
     func testPlaybackTransportUpdatesKeepMetadata() throws {
         let hub = try makeHub()
         _ = try hub.handle(deviceId: "phone", .playbackInfo(PlaybackInfo(

@@ -120,4 +120,46 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(settings.frameRate, 60)
         XCTAssertEqual(settings.display, "0")
     }
+
+    func testSeedDeviceCopiesSettingsExceptUnlocking() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-settings-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = SettingsStore(directory: directory)
+
+        var source = DeviceSettings(deviceId: "phone-1")
+        source.notificationSync = false
+        source.frameRate = 30
+        source.remoteStoragePath = "/tmp/remote"
+        source.unlockDeviceBeforeLaunch = true
+        source.unlockTimeout = 7
+        source.unlockCommands = [UnlockCommandEntry(command: "input text 1234")]
+        source.lowBatteryAlertShown = true
+        try store.saveDevice(source)
+
+        XCTAssertTrue(try store.seedDevice(id: "phone-2", from: "phone-1"))
+        let seeded = try store.loadDevice(id: "phone-2")
+        XCTAssertEqual(seeded.deviceId, "phone-2")
+        XCTAssertFalse(seeded.notificationSync)
+        XCTAssertEqual(seeded.frameRate, 30)
+        XCTAssertEqual(seeded.remoteStoragePath, "/tmp/remote")
+        // The unlock commands (and their toggle/timeout) stay device-specific.
+        XCTAssertFalse(seeded.unlockDeviceBeforeLaunch)
+        XCTAssertEqual(seeded.unlockTimeout, 0)
+        XCTAssertTrue(seeded.unlockCommands.isEmpty)
+        XCTAssertFalse(seeded.lowBatteryAlertShown)
+
+        // An existing settings file is never overwritten.
+        var existing = try store.loadDevice(id: "phone-2")
+        existing.frameRate = 24
+        try store.saveDevice(existing)
+        XCTAssertFalse(try store.seedDevice(id: "phone-2", from: "phone-1"))
+        XCTAssertEqual(try store.loadDevice(id: "phone-2").frameRate, 24)
+
+        // Without a configured source, the new phone keeps factory defaults.
+        XCTAssertFalse(try store.seedDevice(id: "phone-3", from: nil))
+        XCTAssertFalse(try store.seedDevice(id: "phone-3", from: "phone-1x"))
+        XCTAssertEqual(try store.loadDevice(id: "phone-3").frameRate, 60)
+        XCTAssertTrue(try store.loadDevice(id: "phone-3").unlockCommands.isEmpty)
+    }
 }

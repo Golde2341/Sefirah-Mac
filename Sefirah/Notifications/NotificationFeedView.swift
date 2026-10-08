@@ -230,6 +230,11 @@ private struct NotificationCard: View {
         swipe.key == note.key ? swipe.offset : 0
     }
 
+    /// The app behind this notification, when the phone's app list knows the package.
+    private var contextApp: ApplicationRecord? {
+        model.notificationApp(note)
+    }
+
     var body: some View {
         card
             .overlay(alignment: .topTrailing) {
@@ -248,6 +253,24 @@ private struct NotificationCard: View {
                 .help("Remove from the feed and the phone")
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            // Right-click menu: mute (silent, still in the list), hide entirely, or hide the app.
+            // Hiding notifications never hides the app.
+            .contextMenu {
+                let filter = contextApp?.filter ?? .toastFeed
+                if filter == .disabled {
+                    Button("Show Notifications") { model.setNotificationFilter(note, filter: .toastFeed) }
+                } else {
+                    Button(filter == .feed ? "Unmute Notifications" : "Mute Notifications") {
+                        model.setNotificationFilter(note, filter: filter == .feed ? .toastFeed : .feed)
+                    }
+                    Button("Hide Notifications") { model.setNotificationFilter(note, filter: .disabled) }
+                }
+                if let app = contextApp {
+                    Button(app.hidden ? "Unhide App" : "Hide App") {
+                        model.setAppHidden(app, isHidden: !app.hidden)
+                    }
+                }
+            }
             // Offset last so the hover ✕ rides along with the card instead of floating in place.
             .offset(x: offset)
             .onHover { hovering in

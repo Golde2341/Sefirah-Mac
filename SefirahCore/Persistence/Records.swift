@@ -137,6 +137,9 @@ public struct ApplicationRecord: Codable, FetchableRecord, PersistableRecord, Se
     public var icon: Data?
     /// Hidden apps are excluded from the launcher list until the user authenticates.
     public var hidden: Bool
+    /// Hidden apps keep their notifications muted unless this is on; toggled per app behind
+    /// device-owner authentication under Settings → Notifications. The app stays hidden either way.
+    public var hiddenNotifications: Bool
 
     public init(
         appKey: String,
@@ -146,7 +149,8 @@ public struct ApplicationRecord: Codable, FetchableRecord, PersistableRecord, Se
         pinned: Bool = false,
         filter: NotificationFilter = .toastFeed,
         icon: Data? = nil,
-        hidden: Bool = false
+        hidden: Bool = false,
+        hiddenNotifications: Bool = false
     ) {
         self.appKey = appKey
         self.deviceId = deviceId
@@ -156,6 +160,7 @@ public struct ApplicationRecord: Codable, FetchableRecord, PersistableRecord, Se
         self.filter = filter
         self.icon = icon
         self.hidden = hidden
+        self.hiddenNotifications = hiddenNotifications
     }
 
     enum CodingKeys: String, CodingKey {
@@ -167,6 +172,7 @@ public struct ApplicationRecord: Codable, FetchableRecord, PersistableRecord, Se
         case filter = "Filter"
         case icon = "Icon"
         case hidden = "Hidden"
+        case hiddenNotifications = "HiddenNotifications"
     }
 }
 

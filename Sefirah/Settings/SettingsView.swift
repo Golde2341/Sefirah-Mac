@@ -5,6 +5,8 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var model: AppModel
     @State private var isShowingNotificationAppSelection = false
+    @State private var isShowingHiddenNotificationApps = false
+    @State private var isAuthenticatingHiddenNotifications = false
     @State private var deviceToForget: ConnectedPeer?
 
     var body: some View {
@@ -70,6 +72,19 @@ struct SettingsView: View {
                     Button("Configure Apps…") {
                         isShowingNotificationAppSelection = true
                     }
+                }
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Hidden Notifications")
+                        Text("Apps whose notifications are silenced. Unlock with Touch ID to show them again.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button(isAuthenticatingHiddenNotifications ? "Authenticating…" : "Unlock…") {
+                        unlockHiddenNotificationApps()
+                    }
+                    .disabled(isAuthenticatingHiddenNotifications)
                 }
             }
             Section("Screen mirroring") {
@@ -143,6 +158,9 @@ struct SettingsView: View {
         .sheet(isPresented: $isShowingNotificationAppSelection) {
             NotificationAppSelectionView(model: model)
         }
+        .sheet(isPresented: $isShowingHiddenNotificationApps) {
+            HiddenNotificationsView(model: model)
+        }
         .alert(
             "Forget Device?",
             isPresented: Binding(
@@ -166,6 +184,18 @@ struct SettingsView: View {
         panel.showsHiddenFiles = true
         if panel.runModal() == .OK, let url = panel.url {
             apply(url.path)
+        }
+    }
+
+    /// The hidden-notifications list only opens after Touch ID (or the login password), matching
+    /// the hidden-apps strip in the Apps tab.
+    private func unlockHiddenNotificationApps() {
+        guard !isAuthenticatingHiddenNotifications else { return }
+        isAuthenticatingHiddenNotifications = true
+        Task {
+            let unlocked = await DeviceOwnerAuth.authenticate(reason: "Show hidden notifications")
+            isAuthenticatingHiddenNotifications = false
+            if unlocked { isShowingHiddenNotificationApps = true }
         }
     }
 }

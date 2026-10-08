@@ -277,7 +277,16 @@ public final class FeatureHub: @unchecked Sendable {
                 .filter(Column("DeviceId") == deviceId)
                 .order(Column("TimestampMillis").desc)
                 .fetchAll(db)
-            return rows.map { row in
+            // Muted apps and hidden apps (until their notifications are allowed) never surface in
+            // the feed. Rows stay cached, so allowing an app again brings its recent notifications
+            // back instead of only future ones.
+            let suppressed = Set(
+                try ApplicationRecord.filter(Column("DeviceId") == deviceId)
+                    .fetchAll(db)
+                    .filter { $0.filter == .disabled || ($0.hidden && !$0.hiddenNotifications) }
+                    .map(\.packageName)
+            )
+            return rows.filter { !suppressed.contains($0.appPackage) }.map { row in
                 let payload = decodePayload(row.payloadJSON)
                 return NotificationSnapshot(
                     key: row.key,
@@ -373,9 +382,18 @@ public final class FeatureHub: @unchecked Sendable {
         }
     }
 
-    public func setAppNotificationsEnabled(deviceId: String, packageName: String, isEnabled: Bool) throws {
+    public func setAppHiddenNotificationsEnabled(deviceId: String, packageName: String, isEnabled: Bool) throws {
         let appKey = "\(deviceId):\(packageName)"
-        let filter: NotificationFilter = isEnabled ? .toastFeed : .disabled
+        try database.dbQueue.write { db in
+            if var record = try ApplicationRecord.fetchOne(db, key: appKey) {
+                record.hiddenNotifications = isEnabled
+                try record.update(db)
+            }
+        }
+    }
+
+    public func setAppNotificationFilter(deviceId: String, packageName: String, filter: NotificationFilter) throws {
+        let appKey = "\(deviceId):\(packageName)"
         try database.dbQueue.write { db in
             if var record = try ApplicationRecord.fetchOne(db, key: appKey) {
                 record.filter = filter
@@ -384,13 +402,59 @@ public final class FeatureHub: @unchecked Sendable {
         }
     }
 
-    public func isNotificationEnabled(deviceId: String, packageName: String) -> Bool {
+    public func setAppNotificationsEnabled(deviceId: String, packageName: String, isEnabled: Bool) throws {
+        try setAppNotificationFilter(
+            deviceId: deviceId,
+            packageName: packageName,
+            filter: isEnabled ? .toastFeed : .disabled
+        )
+    }
+
+    /// Applies a filter to a package the app list doesn't know (a notification-only system
+    /// component such as `android`): registers a placeholder record so the choice persists and can
+    /// be managed in notification settings like any other app.
+    public func setNotificationOnlyAppFilter(
+        deviceId: String,
+        packageName: String,
+        appName: String,
+        filter: NotificationFilter
+    ) throws {
         let appKey = "\(deviceId):\(packageName)"
-        let record = try? database.dbQueue.read { db in
+        try database.dbQueue.write { db in
+            if var record = try ApplicationRecord.fetchOne(db, key: appKey) {
+                record.filter = filter
+                try record.update(db)
+            } else {
+                let record = ApplicationRecord(
+                    appKey: appKey,
+                    deviceId: deviceId,
+                    packageName: packageName,
+                    appName: appName.isEmpty ? packageName : appName,
+                    filter: filter
+                )
+                try record.save(db)
+            }
+        }
+    }
+
+    public func isAppHidden(deviceId: String, packageName: String) -> Bool {
+        appRecord(deviceId: deviceId, packageName: packageName)?.hidden ?? false
+    }
+
+    /// Banners only: `toastFeed` apps toast, `feed` apps are muted (their notifications land in
+    /// the rail only) and `disabled` apps are hidden entirely. Hidden apps need their
+    /// notifications allowed first, and stay hidden either way.
+    public func shouldShowNotificationBanner(deviceId: String, packageName: String) -> Bool {
+        guard let record = appRecord(deviceId: deviceId, packageName: packageName) else { return true }
+        guard record.filter == .toastFeed else { return false }
+        return !(record.hidden && !record.hiddenNotifications)
+    }
+
+    private func appRecord(deviceId: String, packageName: String) -> ApplicationRecord? {
+        let appKey = "\(deviceId):\(packageName)"
+        return try? database.dbQueue.read { db in
             try ApplicationRecord.fetchOne(db, key: appKey)
         }
-        guard let record else { return true }
-        return record.filter != .disabled
     }
 
     /// Records when the current connection opened (nil on disconnect). Sessions are kept — a

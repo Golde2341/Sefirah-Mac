@@ -33,12 +33,12 @@
     "%lld command(s)" : {
 
     },
-    "%lld of %lld selected" : {
+    "%lld of %lld with sound" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$lld of %2$lld selected"
+            "value" : "%1$lld of %2$lld with sound"
           }
         }
       }
@@ -107,6 +107,9 @@
     "Apps" : {
 
     },
+    "Apps whose notifications are silenced. Unlock with Touch ID to show them again." : {
+
+    },
     "Audio" : {
 
     },
@@ -156,6 +159,9 @@
 
     },
     "CAPS" : {
+
+    },
+    "Checked apps show banners with sound. Unchecked apps stay in the notification list without sound — all apps remain listed. To remove an app's notifications entirely, use Hide Notifications from its right-click menu." : {
 
     },
     "Choose which buttons appear in the menu bar menu." : {
@@ -326,10 +332,25 @@
     "H.265" : {
 
     },
+    "Hidden app" : {
+
+    },
     "Hidden apps" : {
 
     },
+    "Hidden Notifications" : {
+
+    },
+    "Hidden notifications: use the Hidden Notifications settings to restore" : {
+
+    },
     "Hide" : {
+
+    },
+    "Hide App" : {
+
+    },
+    "Hide Notifications" : {
 
     },
     "Incoming and missed calls from your phone appear here." : {
@@ -419,6 +440,9 @@
     "Mute Audio" : {
 
     },
+    "Mute Notifications" : {
+
+    },
     "Muted" : {
 
     },
@@ -455,6 +479,9 @@
     "No device" : {
 
     },
+    "No hidden notifications" : {
+
+    },
     "No matching apps" : {
 
     },
@@ -471,6 +498,9 @@
 
     },
     "Notifications" : {
+
+    },
+    "Notifications from these apps are hidden. Uncheck an app to show its notifications again — apps hidden in the Apps tab stay hidden." : {
 
     },
     "Off" : {
@@ -587,6 +617,9 @@
     "Reveal" : {
 
     },
+    "Right-click a notification or an app to hide its notifications." : {
+
+    },
     "Ring" : {
 
     },
@@ -662,13 +695,22 @@
     "Show app icons in notifications" : {
 
     },
+    "Show Notifications" : {
+
+    },
     "Show Window" : {
 
     },
     "Silent" : {
 
     },
+    "Silent: appears in the list without sound" : {
+
+    },
     "Skip" : {
+
+    },
+    "Sound: banners with sound" : {
 
     },
     "Start mirroring" : {
@@ -737,10 +779,19 @@
     "Unhide" : {
 
     },
+    "Unhide App" : {
+
+    },
     "Unlock commands" : {
 
     },
+    "Unlock…" : {
+
+    },
     "Unmute Audio" : {
+
+    },
+    "Unmute Notifications" : {
 
     },
     "Unpin" : {

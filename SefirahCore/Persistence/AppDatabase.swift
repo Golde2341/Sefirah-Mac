@@ -165,6 +165,13 @@ public struct AppDatabase: Sendable {
             try db.execute(sql: "ALTER TABLE ApplicationEntity ADD COLUMN Hidden INTEGER NOT NULL DEFAULT 0")
             try db.execute(sql: "INSERT INTO SchemaVersionEntity (Version) VALUES (7)")
         }
+        migrator.registerMigration("v9") { db in
+            // Per-app opt-in that shows a hidden app's notifications while the app itself stays
+            // hidden in the Apps tab (managed behind device-owner authentication). Registered as a
+            // fresh migration because "v8" was already consumed by a short-lived build.
+            try db.execute(sql: "ALTER TABLE ApplicationEntity ADD COLUMN HiddenNotifications INTEGER NOT NULL DEFAULT 0")
+            try db.execute(sql: "INSERT INTO SchemaVersionEntity (Version) VALUES (9)")
+        }
         return migrator
     }
 }

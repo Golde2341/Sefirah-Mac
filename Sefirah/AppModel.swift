@@ -377,6 +377,9 @@ final class AppModel: PairingDecider {
         }
         paired.removeAll { $0.id == peer.id }
         paired.append(peer)
+        // A newly paired phone inherits the settings of the phone already configured (the unlock
+        // commands stay device-specific, since the PIN/pattern is per phone).
+        try? settings.seedDevice(id: peer.id, from: selectedDeviceID)
     }
 
     func acceptPendingPair() {
@@ -851,17 +854,115 @@ final class AppModel: PairingDecider {
         if let index = apps.firstIndex(where: { $0.appKey == app.appKey }) {
             apps[index].hidden = isHidden
         }
+        if isHidden {
+            // Hidden apps are muted until their notifications are explicitly allowed.
+            withdrawBanners(forPackage: app.packageName, deviceId: app.deviceId)
+        }
+        if app.deviceId == selectedDeviceID {
+            refreshDevice()
+        }
     }
 
-    func setAppNotificationsEnabled(_ app: ApplicationRecord, isEnabled: Bool) {
-        guard (try? hub.setAppNotificationsEnabled(
+    /// Hidden apps keep their notifications muted; this per-app switch (behind device-owner
+    /// authentication in Settings) lets them through while the app stays hidden in the Apps tab.
+    func setAppHiddenNotificationsEnabled(_ app: ApplicationRecord, isEnabled: Bool) {
+        guard (try? hub.setAppHiddenNotificationsEnabled(
             deviceId: app.deviceId,
             packageName: app.packageName,
             isEnabled: isEnabled
         )) != nil else { return }
 
         if let index = apps.firstIndex(where: { $0.appKey == app.appKey }) {
-            apps[index].filter = isEnabled ? .toastFeed : .disabled
+            apps[index].hiddenNotifications = isEnabled
+        }
+        if app.deviceId == selectedDeviceID {
+            if !isEnabled {
+                withdrawBanners(forPackage: app.packageName, deviceId: app.deviceId)
+            }
+            refreshDevice()
+        }
+    }
+
+    /// Changes one app's notification level: `toastFeed` (banner + rail), `feed` (muted — rail
+    /// only) or `disabled` (hidden entirely).
+    func setAppNotificationFilter(_ app: ApplicationRecord, filter: NotificationFilter) {
+        guard (try? hub.setAppNotificationFilter(
+            deviceId: app.deviceId,
+            packageName: app.packageName,
+            filter: filter
+        )) != nil else { return }
+
+        if let index = apps.firstIndex(where: { $0.appKey == app.appKey }) {
+            apps[index].filter = filter
+        }
+        if app.deviceId == selectedDeviceID {
+            if filter != .toastFeed {
+                withdrawBanners(forPackage: app.packageName, deviceId: app.deviceId)
+            }
+            refreshDevice()
+        }
+    }
+
+    func setAppNotificationsEnabled(_ app: ApplicationRecord, isEnabled: Bool) {
+        setAppNotificationFilter(app, filter: isEnabled ? .toastFeed : .disabled)
+    }
+
+    /// Withdraws already-delivered macOS banners for one app once it is muted or hidden.
+    private func withdrawBanners(forPackage package: String, deviceId: String) {
+        for note in notifications where note.appPackage == package {
+            macNotifications.remove(notificationKey: note.notificationKey, from: deviceId)
+        }
+    }
+
+    /// The app record behind a mirrored notification, when the phone's app list knows the package.
+    func notificationApp(_ note: NotificationSnapshot) -> ApplicationRecord? {
+        apps.first { $0.deviceId == note.deviceId && $0.packageName == note.appPackage }
+    }
+
+    /// Notification-card menu: toast / silent / hidden for the app behind the notification.
+    /// Packages with no app-list entry (system components like `android`) get a placeholder record
+    /// so the choice persists and can be managed in notification settings.
+    func setNotificationFilter(_ note: NotificationSnapshot, filter: NotificationFilter) {
+        if let app = notificationApp(note) {
+            setAppNotificationFilter(app, filter: filter)
+            return
+        }
+        guard filter != .toastFeed else { return }
+        guard (try? hub.setNotificationOnlyAppFilter(
+            deviceId: note.deviceId,
+            packageName: note.appPackage,
+            appName: note.appName,
+            filter: filter
+        )) != nil else { return }
+        withdrawBanners(forPackage: note.appPackage, deviceId: note.deviceId)
+        if note.deviceId == selectedDeviceID {
+            refreshDevice()
+        }
+    }
+
+    /// Apps whose notifications are currently silenced — muted apps plus hidden apps that haven't
+    /// been allowed to notify. Listed in the Touch ID–locked "Hidden Notifications" settings.
+    var hiddenNotificationApps: [ApplicationRecord] {
+        apps.filter { $0.filter == .disabled || ($0.hidden && !$0.hiddenNotifications) }
+            .sorted { $0.appName.localizedStandardCompare($1.appName) == .orderedAscending }
+    }
+
+    /// Shows or hides one app's notifications from the locked "Hidden Notifications" sheet. An app
+    /// hidden in the Apps tab stays hidden — only its notifications are switched.
+    func setNotificationSuppressed(_ app: ApplicationRecord, isSuppressed: Bool) {
+        if isSuppressed {
+            if app.hidden {
+                setAppHiddenNotificationsEnabled(app, isEnabled: false)
+            } else {
+                setAppNotificationsEnabled(app, isEnabled: false)
+            }
+            return
+        }
+        if app.filter == .disabled {
+            setAppNotificationsEnabled(app, isEnabled: true)
+        }
+        if app.hidden, !app.hiddenNotifications {
+            setAppHiddenNotificationsEnabled(app, isEnabled: true)
         }
     }
 
@@ -1250,14 +1351,34 @@ final class AppModel: PairingDecider {
 
     /// Opens a mirrored notification on the phone — firing its content intent so messaging apps
     /// land on the right screen — and mirrors just the app on a virtual display. The URL is sent by
-    /// the `Sefirah Phone` helper on a banner click.
+    /// the `Sefirah Phone` helper on a banner click. Opening a hidden app's notification asks for
+    /// Touch ID (or the login password) first.
     private func openNotificationApp(
         deviceID: String,
         appPackage: String,
         appName: String?,
         notificationKey: String?
     ) {
+        Task {
+            await openNotificationAppAuthorized(
+                deviceID: deviceID,
+                appPackage: appPackage,
+                appName: appName,
+                notificationKey: notificationKey
+            )
+        }
+    }
+
+    private func openNotificationAppAuthorized(
+        deviceID: String,
+        appPackage: String,
+        appName: String?,
+        notificationKey: String?
+    ) async {
         guard general.openAppOnNotificationClick else { return }
+        if hub.isAppHidden(deviceId: deviceID, packageName: appPackage) {
+            guard await DeviceOwnerAuth.authenticate(reason: "Open a notification from a hidden app") else { return }
+        }
 
         if general.mirrorBackend == .native {
             // The native mirror renders in the main window's Mirror tab, so it must come forward.
@@ -1425,7 +1546,7 @@ final class AppModel: PairingDecider {
 
         if notification.infoType == .removed {
             macNotifications.remove(notificationKey: notification.notificationKey, from: deviceID)
-        } else if let appPackage = notification.appPackage, hub.isNotificationEnabled(deviceId: deviceID, packageName: appPackage) {
+        } else if let appPackage = notification.appPackage, hub.shouldShowNotificationBanner(deviceId: deviceID, packageName: appPackage) {
             macNotifications.deliver(notification, from: deviceID, includeIcon: general.showNotificationIcons)
         }
     }

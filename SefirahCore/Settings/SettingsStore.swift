@@ -87,6 +87,41 @@ public final class SettingsStore: @unchecked Sendable {
         }
     }
 
+    /// Seeds a newly paired phone from another device's settings so it starts preconfigured. The
+    /// unlock commands (and their toggle/timeout) stay device-specific, and an existing settings
+    /// file is never overwritten. Returns true when settings were copied.
+    @discardableResult
+    public func seedDevice(id: String, from sourceId: String?) throws -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        let target = deviceURL(id)
+        guard !FileManager.default.fileExists(atPath: target.path) else { return false }
+        guard let sourceId, sourceId != id else { return false }
+        guard let data = try? Data(contentsOf: deviceURL(sourceId)),
+              var settings = try? decoder.decode(DeviceSettings.self, from: data)
+        else { return false }
+
+        settings.deviceId = id
+        // Unlocking is phone-specific: never carry the commands or their toggle across devices.
+        settings.unlockCommands = []
+        settings.unlockDeviceBeforeLaunch = false
+        settings.unlockTimeout = 0
+        settings.lowBatteryAlertShown = false
+        settings.clampBatteryThreshold()
+
+        do {
+            try FileManager.default.createDirectory(
+                at: target.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            let encoded = try encoder.encode(settings)
+            try encoded.write(to: target, options: .atomic)
+            return true
+        } catch {
+            throw SettingsError.encodingFailed
+        }
+    }
+
     /// Removes the per-device settings file, used when a device is forgotten.
     public func deleteDevice(id: String) throws {
         lock.lock()

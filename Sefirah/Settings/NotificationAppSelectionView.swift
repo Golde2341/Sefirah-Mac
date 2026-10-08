@@ -17,7 +17,7 @@ struct NotificationAppSelectionView: View {
 
     private var allFilteredSelected: Bool {
         guard !filteredApps.isEmpty else { return false }
-        return filteredApps.allSatisfy { $0.filter != .disabled }
+        return filteredApps.allSatisfy { $0.filter == .toastFeed }
     }
 
     var body: some View {
@@ -30,6 +30,11 @@ struct NotificationAppSelectionView: View {
                     dismiss()
                 }
             }
+
+            Text("Checked apps show banners with sound. Unchecked apps stay in the notification list without sound — all apps remain listed. To remove an app's notifications entirely, use Hide Notifications from its right-click menu.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             // Search bar
             HStack {
@@ -61,7 +66,7 @@ struct NotificationAppSelectionView: View {
                 .disabled(filteredApps.isEmpty)
 
                 Spacer()
-                Text("\(model.apps.filter { $0.filter != .disabled }.count) of \(model.apps.count) selected")
+                Text("\(model.apps.filter { $0.filter == .toastFeed }.count) of \(model.apps.count) with sound")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -77,11 +82,12 @@ struct NotificationAppSelectionView: View {
                     Toggle(
                         app.appName,
                         isOn: Binding(
-                            get: { app.filter != .disabled },
-                            set: { model.setAppNotificationsEnabled(app, isEnabled: $0) }
+                            get: { app.filter == .toastFeed },
+                            set: { model.setAppNotificationFilter(app, filter: $0 ? .toastFeed : .feed) }
                         )
                     )
                     .toggleStyle(.checkbox)
+                    .help(app.filter == .toastFeed ? "Sound: banners with sound" : (app.filter == .feed ? "Silent: appears in the list without sound" : "Hidden notifications: use the Hidden Notifications settings to restore"))
                 }
             }
         }
@@ -90,9 +96,71 @@ struct NotificationAppSelectionView: View {
     }
 
     private func toggleSelectAll() {
-        let enable = !allFilteredSelected
-        for app in filteredApps {
-            model.setAppNotificationsEnabled(app, isEnabled: enable)
+        if allFilteredSelected {
+            // Mute (silent) everything shown, but leave deliberately hidden apps hidden.
+            for app in filteredApps where app.filter != .disabled {
+                model.setAppNotificationFilter(app, filter: .feed)
+            }
+        } else {
+            for app in filteredApps {
+                model.setAppNotificationFilter(app, filter: .toastFeed)
+            }
         }
+    }
+}
+
+/// Apps whose notifications are silenced, reachable only after device-owner authentication from
+/// Settings → Notifications. Checking an app shows its notifications again; apps hidden in the
+/// Apps tab stay hidden either way.
+struct HiddenNotificationsView: View {
+    @Bindable var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Hidden Notifications")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                Button("Done") { dismiss() }
+            }
+
+            Text("Notifications from these apps are hidden. Uncheck an app to show its notifications again — apps hidden in the Apps tab stay hidden.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if model.hiddenNotificationApps.isEmpty {
+                ContentUnavailableView(
+                    "No hidden notifications",
+                    systemImage: "bell.slash",
+                    description: Text("Right-click a notification or an app to hide its notifications.")
+                )
+            } else {
+                List(model.hiddenNotificationApps, id: \.appKey) { app in
+                    Toggle(
+                        isOn: Binding(
+                            get: { app.filter == .disabled || (app.hidden && !app.hiddenNotifications) },
+                            set: { model.setNotificationSuppressed(app, isSuppressed: $0) }
+                        )
+                    ) {
+                        HStack(spacing: 6) {
+                            Text(app.appName)
+                            if app.hidden {
+                                Text("Hidden app")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(.quaternary, in: Capsule())
+                            }
+                        }
+                    }
+                    .toggleStyle(.checkbox)
+                }
+            }
+        }
+        .padding()
+        .frame(minWidth: 420, minHeight: 320)
     }
 }

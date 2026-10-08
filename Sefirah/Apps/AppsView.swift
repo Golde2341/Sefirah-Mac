@@ -158,22 +158,23 @@ struct AppsView: View {
         guard !isAuthenticating else { return }
         isAuthenticating = true
         Task {
-            let unlocked = await HiddenAppsAuth.authenticate()
+            let unlocked = await DeviceOwnerAuth.authenticate(reason: "Reveal hidden apps")
             isAuthenticating = false
             if unlocked { hiddenUnlocked = true }
         }
     }
 }
 
-/// Unlocks the hidden apps section with Touch ID or the login password.
-private enum HiddenAppsAuth {
-    static func authenticate() async -> Bool {
+/// Unlocks hidden-app surfaces (the apps strip, hidden-notification opt-ins and opening a hidden
+/// app's notifications) with Touch ID or the login password.
+enum DeviceOwnerAuth {
+    static func authenticate(reason: String) async -> Bool {
         let context = LAContext()
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else { return false }
         return (try? await context.evaluatePolicy(
             .deviceOwnerAuthentication,
-            localizedReason: "Reveal hidden apps"
+            localizedReason: reason
         )) ?? false
     }
 }
@@ -237,6 +238,7 @@ private struct AppRow: View {
     @ViewBuilder
     private var appActions: some View {
         Button(app.pinned ? "Unpin" : "Pin") { model.togglePinnedApp(app) }
+        AppNotificationMenuItems(app: app, model: model)
         Divider()
         Button("Hide") { model.setAppHidden(app, isHidden: true) }
     }
@@ -283,6 +285,7 @@ private struct AppTile: View {
         .help(app.appName)
         .contextMenu {
             Button(app.pinned ? "Unpin" : "Pin") { model.togglePinnedApp(app) }
+            AppNotificationMenuItems(app: app, model: model)
             Divider()
             Button("Hide") { model.setAppHidden(app, isHidden: true) }
         }
@@ -321,6 +324,26 @@ private struct HiddenAppRow: View {
         .contextMenu {
             Button("Unhide") { model.setAppHidden(app, isHidden: false) }
             Button(app.pinned ? "Unpin" : "Pin") { model.togglePinnedApp(app) }
+            AppNotificationMenuItems(app: app, model: model)
+        }
+    }
+}
+
+/// Menu items shared by every app context menu: mute (silent — no banner, still in the
+/// notification list), hide notifications entirely, or show them again. Never touches whether the
+/// app itself is hidden.
+private struct AppNotificationMenuItems: View {
+    let app: ApplicationRecord
+    @Bindable var model: AppModel
+
+    var body: some View {
+        if app.filter == .disabled {
+            Button("Show Notifications") { model.setAppNotificationFilter(app, filter: .toastFeed) }
+        } else {
+            Button(app.filter == .feed ? "Unmute Notifications" : "Mute Notifications") {
+                model.setAppNotificationFilter(app, filter: app.filter == .feed ? .toastFeed : .feed)
+            }
+            Button("Hide Notifications") { model.setAppNotificationFilter(app, filter: .disabled) }
         }
     }
 }

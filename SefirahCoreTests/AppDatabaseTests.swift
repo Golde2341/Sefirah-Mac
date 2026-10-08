@@ -1,11 +1,54 @@
 import SefirahCore
+import SQLite3
 import XCTest
 
 final class AppDatabaseTests: XCTestCase {
-    func testSchemaVersionIsSeven() throws {
+    func testSchemaVersionIsNine() throws {
         let db = try AppDatabase(inMemory: ())
         XCTAssertEqual(db.schemaVersion, SefirahConstants.schemaVersion)
-        XCTAssertEqual(db.schemaVersion, 7)
+        XCTAssertEqual(db.schemaVersion, 9)
+    }
+
+    /// A short-lived build shipped "v8" as an `IsSystem` column; the identifier is already recorded
+    /// in databases that ran it, so the hidden-notifications column must arrive as a fresh `v9`
+    /// migration or `ApplicationRecord` reads fail (empty apps list and notification feed).
+    func testUpgradeFromShortLivedV8AppliesHiddenNotifications() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sefirah-v8-upgrade-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent(SefirahConstants.databaseFileName)
+
+        var handle: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(url.path, &handle), SQLITE_OK)
+        defer { sqlite3_close(handle) }
+        let seed = """
+            CREATE TABLE SchemaVersionEntity (Version INTEGER PRIMARY KEY NOT NULL);
+            CREATE TABLE grdb_migrations (identifier TEXT NOT NULL PRIMARY KEY);
+            CREATE TABLE ApplicationEntity (
+                AppKey TEXT PRIMARY KEY NOT NULL,
+                DeviceId TEXT NOT NULL,
+                PackageName TEXT NOT NULL,
+                AppName TEXT NOT NULL,
+                Pinned INTEGER NOT NULL DEFAULT 0,
+                Filter INTEGER NOT NULL DEFAULT 2,
+                Icon BLOB,
+                Hidden INTEGER NOT NULL DEFAULT 0,
+                IsSystem INTEGER NOT NULL DEFAULT 0
+            );
+            INSERT INTO SchemaVersionEntity (Version) VALUES (5),(6),(7),(8);
+            INSERT INTO grdb_migrations (identifier) VALUES ('v5'),('v6'),('v7'),('v8');
+            INSERT INTO ApplicationEntity (AppKey, DeviceId, PackageName, AppName)
+                VALUES ('phone:com.chat', 'phone', 'com.chat', 'Chat');
+            """
+        XCTAssertEqual(sqlite3_exec(handle, seed, nil, nil, nil), SQLITE_OK)
+
+        let db = try AppDatabase(fileURL: url)
+        XCTAssertEqual(db.schemaVersion, SefirahConstants.schemaVersion)
+        let hub = FeatureHub(database: db)
+        let apps = try hub.apps(deviceId: "phone")
+        XCTAssertEqual(apps.map(\.packageName), ["com.chat"])
+        XCTAssertFalse(apps[0].hiddenNotifications)
     }
 
     func testLocalAndPairedDeviceRoundTrip() throws {
