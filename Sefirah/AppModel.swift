@@ -255,6 +255,13 @@ final class AppModel: PairingDecider {
         reconnect(peer)
     }
 
+    /// Selects a paired device from the menu bar dropdown and refreshes its cached data.
+    func selectDevice(_ id: String) {
+        guard selectedDeviceID != id else { return }
+        selectedDeviceID = id
+        refreshDevice()
+    }
+
     private func connectNow(_ peer: ConnectedPeer) {
         if let host = PeerAddress.reconnectable(peer.address) {
             session?.connect(deviceId: peer.id, host: host, port: peer.port)

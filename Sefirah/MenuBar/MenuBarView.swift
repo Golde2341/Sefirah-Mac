@@ -68,6 +68,35 @@ struct MenuBarView: View {
             }
             .frame(width: 34, height: 34)
 
+            if model.paired.count > 1 {
+                Menu {
+                    ForEach(model.paired) { device in
+                        Button {
+                            model.selectDevice(device.id)
+                        } label: {
+                            if device.id == model.selectedDeviceID {
+                                Label(device.name, systemImage: "checkmark")
+                            } else {
+                                Text(device.name)
+                            }
+                        }
+                    }
+                } label: {
+                    headerLabel
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+            } else {
+                headerLabel
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// Selected device name and status; doubles as the multi-device dropdown's label.
+    private var headerLabel: some View {
+        HStack(spacing: 5) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(model.selectedDevice?.name ?? "Sefirah")
                     .font(.headline)
@@ -81,7 +110,11 @@ struct MenuBarView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Spacer(minLength: 0)
+            if model.paired.count > 1 {
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
     }
 
