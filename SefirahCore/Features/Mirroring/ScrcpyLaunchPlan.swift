@@ -102,6 +102,11 @@ public enum ScrcpyLaunchPlanner {
         if usesBundled, let bundled {
             environment["SCRCPY_SERVER_PATH"] = bundled.server.path
         }
+        // Audio-only sessions are headless. Without this hint SDL promotes the process to a regular
+        // (Dock-visible) app on macOS, so keep it background-only.
+        if audioOnly {
+            environment["SDL_MAC_BACKGROUND_APP"] = "1"
+        }
 
         return ScrcpyLaunchPlan(
             executable: executable,

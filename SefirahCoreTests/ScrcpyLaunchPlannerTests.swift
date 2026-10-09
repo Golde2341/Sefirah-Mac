@@ -109,10 +109,14 @@ final class ScrcpyLaunchPlannerTests: XCTestCase {
         XCTAssertTrue(p.arguments.contains("--no-video"))
         XCTAssertTrue(p.arguments.contains("--audio-bit-rate=320K"))
         XCTAssertFalse(p.arguments.contains("--turn-screen-off"))
+        // Headless audio-only must not promote itself to a Dock-visible app.
+        XCTAssertEqual(p.environment["SDL_MAC_BACKGROUND_APP"], "1")
     }
 
     func testMirrorPlanIsNotAudioOnly() throws {
-        XCTAssertFalse(try plan(bundled: bundled).audioOnly)
+        let p = try plan(bundled: bundled)
+        XCTAssertFalse(p.audioOnly)
+        XCTAssertNil(p.environment["SDL_MAC_BACKGROUND_APP"])
     }
 
     func testErrorDescriptions() {
