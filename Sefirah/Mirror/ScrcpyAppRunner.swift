@@ -209,6 +209,12 @@ final class ScrcpyRunnerRouter: ScrcpyRunning, @unchecked Sendable {
     }
 
     func launch(_ plan: ScrcpyLaunchPlan, key: String, onExit: @escaping @Sendable (ScrcpyExit) -> Void) throws {
+        // Audio-only sessions are headless: the wrapper app would flash a Dock icon and steal focus
+        // for no window, so run them directly.
+        if plan.audioOnly {
+            try process.launch(plan, key: key, onExit: onExit)
+            return
+        }
         do {
             try wrapper.launch(plan, key: key, onExit: onExit)
             return

@@ -110,6 +110,12 @@ final class AppModel: PairingDecider {
     private var adbSerials: [String: String] = [:]
     /// "Phone speakers" while the phone's media stream routes to its internal speaker.
     private(set) var phoneMediaOutputLabel: String?
+    /// Keys of running dedicated phone-audio sessions ("<device id>:audio").
+    private(set) var audioMirrorKeys: Set<String> = []
+    /// Keys whose phone-audio launch is still resolving tools/adb.
+    private(set) var pendingAudioKeys: Set<String> = []
+    /// Audio keys the user stopped on purpose, so their exit is not reported as a failure.
+    private var intentionalAudioStops: Set<String> = []
     /// Last audio-device snapshot published per device, so refreshes only send diffs.
     private var publishedAudioDevices: [String: [String: AudioDeviceInfo]] = [:]
     private var maintenanceTask: Task<Void, Never>?
@@ -779,11 +785,153 @@ final class AppModel: PairingDecider {
         }
     }
 
+    // MARK: - Phone audio → Mac
+
+    private func phoneAudioKey(_ deviceID: String) -> String { "\(deviceID):audio" }
+
+    func isPhoneAudioMirroring(deviceID: String) -> Bool {
+        let key = phoneAudioKey(deviceID)
+        return audioMirrorKeys.contains(key) || scrcpyRunner.runningKeys.contains(key)
+    }
+
+    /// True while the selected phone's audio is being played on this Mac.
+    var isPhoneAudioActive: Bool {
+        guard let id = selectedDeviceID else { return false }
+        return isPhoneAudioMirroring(deviceID: id)
+    }
+
+    /// True while the selected phone's audio session is still starting.
+    var isPhoneAudioPending: Bool {
+        guard let id = selectedDeviceID else { return false }
+        return pendingAudioKeys.contains(phoneAudioKey(id))
+    }
+
+    /// Menu-bar "phone speaker" toggle: forwards the phone's audio to this Mac (320 kbit/s, 500 ms
+    /// buffer, no video) on the first tap and stops it on the next.
+    func togglePhoneAudio() {
+        guard let device = selectedDevice else { return }
+        let key = phoneAudioKey(device.id)
+        if audioMirrorKeys.contains(key) || scrcpyRunner.runningKeys.contains(key) {
+            intentionalAudioStops.insert(key)
+            scrcpyRunner.terminate(key: key)
+            audioMirrorKeys.remove(key)
+        } else {
+            startPhoneAudio(device: device)
+        }
+    }
+
+    private func startPhoneAudio(device: ConnectedPeer) {
+        let key = phoneAudioKey(device.id)
+        guard !pendingAudioKeys.contains(key),
+              !audioMirrorKeys.contains(key),
+              !scrcpyRunner.runningKeys.contains(key)
+        else { return }
+        pendingAudioKeys.insert(key)
+        Task { [weak self] in
+            guard let self else { return }
+            await self.launchPhoneAudioAsync(device: device, key: key)
+            self.pendingAudioKeys.remove(key)
+        }
+    }
+
+    private func launchPhoneAudioAsync(device: ConnectedPeer, key: String) async {
+        let deviceSettings = (try? settings.loadDevice(id: device.id)) ?? DeviceSettings(deviceId: device.id)
+        let general = self.general
+        let bundledTools = self.bundledTools
+        let env = ProcessInfo.processInfo.environment
+        let home = NSHomeDirectory()
+        func makePlan(_ serial: String?) throws -> ScrcpyLaunchPlan {
+            try ScrcpyLaunchPlanner.plan(
+                general: general, device: deviceSettings, bundled: bundledTools,
+                serial: serial, audioOnly: true,
+                baseEnvironment: env, home: home,
+                isExecutable: { FileManager.default.isExecutableFile(atPath: $0.path) }
+            )
+        }
+
+        // Resolve tools first so tool errors surface before any adb call.
+        let base: ScrcpyLaunchPlan
+        do {
+            base = try makePlan(nil)
+        } catch {
+            toolFailure = ToolFailure(
+                title: "Phone audio unavailable",
+                message: error.localizedDescription,
+                detail: "Bundled scrcpy: \(bundledScrcpyVersion ?? "missing")"
+            )
+            return
+        }
+
+        // Reuse the periodic adb snapshot when available; otherwise connect/select like the mirror.
+        var serial: String? = adbSerials[device.id]
+        if serial == nil,
+           let client = base.adb.map({ AdbClient(adb: $0, environment: base.environment, runner: commandRunner) })
+        {
+            if deviceSettings.adbTcpipModeEnabled {
+                serial = try? await client.tryConnectTcp(host: device.address, model: device.model)
+            } else if let devices = try? await client.devices() {
+                serial = ScrcpyDeviceSelection.serial(
+                    devices: devices, peerModel: device.model, preference: deviceSettings.scrcpyDevicePreference
+                )
+            }
+        }
+
+        let plan = serial.flatMap { try? makePlan($0) } ?? base
+        do {
+            try scrcpyRunner.launch(plan, key: key) { [weak self] exit in
+                Task { @MainActor in
+                    self?.handlePhoneAudioExit(exit, key: key, deviceID: device.id)
+                }
+            }
+            audioMirrorKeys.insert(key)
+        } catch {
+            toolFailure = ToolFailure(
+                title: "Could not start phone audio",
+                message: error.localizedDescription,
+                detail: plan.executable.path
+            )
+        }
+    }
+
+    private func handlePhoneAudioExit(_ exit: ScrcpyExit, key: String, deviceID: String) {
+        // A relaunch with the same key terminates the previous process; ignore the stale exit.
+        guard !scrcpyRunner.runningKeys.contains(key) else { return }
+        audioMirrorKeys.remove(key)
+        if intentionalAudioStops.remove(key) != nil { return }
+        switch exit {
+        case .normal:
+            return
+        case .failure(let code, let stderr), .signaled(let code, let stderr):
+            toolFailure = ToolFailure(
+                title: "Phone audio stopped (code \(code))",
+                message: ScrcpyDiagnostics.hint(exit: exit) ?? "scrcpy reported an error.",
+                detail: stderr,
+                retryAction: { [weak self] in self?.retryPhoneAudio(deviceID: deviceID) }
+            )
+        case .reported(let stderr):
+            toolFailure = ToolFailure(
+                title: "Phone audio reported an error",
+                message: ScrcpyDiagnostics.hint(exit: exit) ?? "scrcpy exited with an error.",
+                detail: stderr,
+                retryAction: { [weak self] in self?.retryPhoneAudio(deviceID: deviceID) }
+            )
+        }
+    }
+
+    private func retryPhoneAudio(deviceID: String) {
+        guard let device = paired.first(where: { $0.id == deviceID }) else { return }
+        startPhoneAudio(device: device)
+    }
+
     func stopMirroring(key: String? = nil) {
         if let key {
+            if audioMirrorKeys.contains(key) { intentionalAudioStops.insert(key) }
             scrcpyRunner.terminate(key: key)
+            audioMirrorKeys.remove(key)
         } else {
+            intentionalAudioStops.formUnion(audioMirrorKeys)
             scrcpyRunner.terminateAll()
+            audioMirrorKeys.removeAll()
         }
     }
 
@@ -1169,14 +1317,18 @@ final class AppModel: PairingDecider {
     /// Stops every session of a device: the device mirror and its per-app sessions, native or external.
     func stopMirrors(deviceId: String) {
         for controller in mirrors.values where controller.deviceId == deviceId { controller.stop() }
+        intentionalAudioStops.formUnion(audioMirrorKeys.filter { $0.hasPrefix(deviceId + ":") })
         for key in scrcpyRunner.runningKeys where key == deviceId || key.hasPrefix(deviceId + ":") {
             scrcpyRunner.terminate(key: key)
         }
+        audioMirrorKeys = audioMirrorKeys.filter { !$0.hasPrefix(deviceId + ":") }
     }
 
     func stopAllMirrors() {
+        intentionalAudioStops.formUnion(audioMirrorKeys)
         mirrors.values.forEach { $0.stop() }
         scrcpyRunner.terminateAll()
+        audioMirrorKeys.removeAll()
     }
 
     /// True while any session of the device (device mirror or per-app) is running.

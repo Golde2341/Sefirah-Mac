@@ -138,17 +138,28 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 5) {
                 HStack {
                     Spacer(minLength: 0)
-                    HStack(spacing: 3) {
-                        Image(systemName: outputIconName)
-                            .font(.system(size: 9, weight: .semibold))
-                        Text(model.phoneMediaOutputLabel ?? model.selectedDevice?.name ?? "This phone")
-                            .font(.system(size: 10, weight: .medium))
-                            .lineLimit(1)
+                    Button {
+                        model.togglePhoneAudio()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: outputIconName)
+                                .font(.system(size: 9, weight: .semibold))
+                            Text(audioButtonLabel)
+                                .font(.system(size: 10, weight: .medium))
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(audioButtonBackground, in: Capsule())
+                        .opacity(model.isPhoneAudioPending ? 0.6 : 1)
                     }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .buttonStyle(.plain)
+                    .disabled(model.selectedDevice == nil || model.isPhoneAudioPending)
+                    .help(model.isPhoneAudioActive
+                        ? "Stop playing phone audio on this Mac"
+                        : "Play phone audio on this Mac (320 kbit/s, 500 ms buffer)")
+                    .accessibilityLabel(model.isPhoneAudioActive ? "Stop phone audio on Mac" : "Play phone audio on Mac")
                 }
 
                 Spacer(minLength: 0)
@@ -246,10 +257,21 @@ struct MenuBarView: View {
     }
 
     private var outputIconName: String {
+        if model.isPhoneAudioActive { return "speaker.wave.2.fill" }
         guard let label = model.phoneMediaOutputLabel else { return "iphone" }
         if label.contains("Headphones") { return "headphones" }
         if label.contains("Bluetooth") { return "antenna.radiowaves.left.and.right" }
         return "speaker.wave.2.fill"
+    }
+
+    /// Chip text: the phone's route normally, or the forward state once it plays on the Mac.
+    private var audioButtonLabel: String {
+        if model.isPhoneAudioActive { return "Playing on Mac" }
+        return model.phoneMediaOutputLabel ?? model.selectedDevice?.name ?? "This phone"
+    }
+
+    private var audioButtonBackground: AnyShapeStyle {
+        model.isPhoneAudioActive ? AnyShapeStyle(accent) : AnyShapeStyle(.ultraThinMaterial)
     }
 
     /// Borderless transport glyph for the skip buttons — no glass disc, so it can hug the edge.

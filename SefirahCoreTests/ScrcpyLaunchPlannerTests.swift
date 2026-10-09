@@ -97,6 +97,24 @@ final class ScrcpyLaunchPlannerTests: XCTestCase {
         XCTAssertTrue(p.arguments.contains("S1"))
     }
 
+    func testAudioOnlyPlanUsesAudioOnlyArguments() throws {
+        var device = DeviceSettings(deviceId: "d")
+        device.customArguments = "--stay-awake"
+        let p = try ScrcpyLaunchPlanner.plan(
+            general: GeneralSettings(), device: device, bundled: bundled, serial: "S1", audioOnly: true,
+            baseEnvironment: [:], home: "/Users/test", isExecutable: { _ in true }
+        )
+        XCTAssertTrue(p.audioOnly)
+        XCTAssertEqual(p.arguments, ScrcpyArguments.buildAudioOnly(settings: device, serial: "S1"))
+        XCTAssertTrue(p.arguments.contains("--no-video"))
+        XCTAssertTrue(p.arguments.contains("--audio-bit-rate=320K"))
+        XCTAssertFalse(p.arguments.contains("--turn-screen-off"))
+    }
+
+    func testMirrorPlanIsNotAudioOnly() throws {
+        XCTAssertFalse(try plan(bundled: bundled).audioOnly)
+    }
+
     func testErrorDescriptions() {
         XCTAssertTrue(ScrcpyLaunchError.bundledToolMissing("adb").localizedDescription.contains("(adb)"))
         XCTAssertTrue(ScrcpyLaunchError.overrideNotFound(tool: "scrcpy", path: "/opt/x").localizedDescription.contains("/opt/x"))

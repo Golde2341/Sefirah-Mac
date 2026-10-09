@@ -27,13 +27,24 @@ public struct ScrcpyLaunchPlan: Sendable, Equatable {
     /// What adb the plan uses (nil = let scrcpy search PATH).
     public var adb: URL?
     public var usesBundledScrcpy: Bool
+    /// Audio-only session: run headless through the plain process runner instead of the wrapper app
+    /// (no Dock icon, no focus steal, no window).
+    public var audioOnly: Bool
 
-    public init(executable: URL, arguments: [String], environment: [String: String], adb: URL?, usesBundledScrcpy: Bool) {
+    public init(
+        executable: URL,
+        arguments: [String],
+        environment: [String: String],
+        adb: URL?,
+        usesBundledScrcpy: Bool,
+        audioOnly: Bool = false
+    ) {
         self.executable = executable
         self.arguments = arguments
         self.environment = environment
         self.adb = adb
         self.usesBundledScrcpy = usesBundledScrcpy
+        self.audioOnly = audioOnly
     }
 }
 
@@ -47,6 +58,7 @@ public enum ScrcpyLaunchPlanner {
         serial: String?,
         package: String? = nil,
         appName: String? = nil,
+        audioOnly: Bool = false,
         baseEnvironment: [String: String],
         home: String,
         isExecutable: (URL) -> Bool
@@ -93,10 +105,13 @@ public enum ScrcpyLaunchPlanner {
 
         return ScrcpyLaunchPlan(
             executable: executable,
-            arguments: ScrcpyArguments.build(settings: device, serial: serial, package: package, appName: appName),
+            arguments: audioOnly
+                ? ScrcpyArguments.buildAudioOnly(settings: device, serial: serial)
+                : ScrcpyArguments.build(settings: device, serial: serial, package: package, appName: appName),
             environment: environment,
             adb: adb,
-            usesBundledScrcpy: usesBundled
+            usesBundledScrcpy: usesBundled,
+            audioOnly: audioOnly
         )
     }
 

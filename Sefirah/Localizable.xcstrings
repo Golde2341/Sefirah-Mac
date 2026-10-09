@@ -578,6 +578,12 @@
     "Pinned" : {
 
     },
+    "Play phone audio on Mac" : {
+
+    },
+    "Play phone audio on this Mac (320 kbit/s, 500 ms buffer)" : {
+
+    },
     "Ports" : {
 
     },
@@ -747,6 +753,12 @@
 
     },
     "Stop mirroring" : {
+
+    },
+    "Stop phone audio on Mac" : {
+
+    },
+    "Stop playing phone audio on this Mac" : {
 
     },
     "Stop sound" : {

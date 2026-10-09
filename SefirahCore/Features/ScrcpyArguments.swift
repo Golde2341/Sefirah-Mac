@@ -76,6 +76,37 @@ public enum ScrcpyArguments {
         return args
     }
 
+    /// Dedicated phone→Mac audio forwarding ("play phone audio on this Mac").
+    public static let audioOnlyBitRate = "320K"
+    /// 500 ms jitter buffer: decoupled from video, it trades latency for glitch-free playback so a
+    /// concurrently running screen mirror never stutters because of audio underruns.
+    public static let audioOnlyBufferMs = 500
+
+    /// Arguments for an audio-only scrcpy session: no video and no window, Mac playback only.
+    /// The default `--audio-source=output` forwards the whole audio output and mutes the phone.
+    public static func buildAudioOnly(settings: DeviceSettings, serial: String?) -> [String] {
+        var args: [String] = []
+        if let custom = nonempty(settings.customArguments) {
+            args.append(contentsOf: splitArguments(custom))
+        }
+        if let serial, !serial.isEmpty {
+            args.append(contentsOf: ["-s", serial])
+        }
+        args.append("--no-video")
+        args.append("--no-window")
+        args.append("--audio-bit-rate=\(audioOnlyBitRate)")
+        args.append("--audio-buffer=\(audioOnlyBufferMs)")
+        switch settings.audioCodec {
+        case 1: args.append("--audio-codec=aac")
+        case 2: args.append("--audio-codec=raw")
+        default: break
+        }
+        if settings.audioOutputBuffer > 0 {
+            args.append("--audio-output-buffer=\(settings.audioOutputBuffer)")
+        }
+        return args
+    }
+
     private static func nonempty(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed

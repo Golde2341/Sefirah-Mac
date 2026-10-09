@@ -63,6 +63,39 @@ final class ScrcpyArgumentsTests: XCTestCase {
         XCTAssertEqual(ScrcpyArguments.build(settings: s, serial: nil), [])
     }
 
+    func testAudioOnlyArguments() {
+        let args = ScrcpyArguments.buildAudioOnly(settings: settings(), serial: "ABC123")
+        XCTAssertEqual(args, [
+            "-s", "ABC123",
+            "--no-video", "--no-window",
+            "--audio-bit-rate=320K", "--audio-buffer=500",
+        ])
+        XCTAssertFalse(args.contains("--audio-dup"))
+        XCTAssertFalse(args.contains("--no-audio"))
+        XCTAssertFalse(args.contains("--turn-screen-off"))
+    }
+
+    func testAudioOnlyRespectsCodecAndOutputBuffer() {
+        var s = settings()
+        s.audioCodec = 1
+        s.audioOutputBuffer = 100
+        let args = ScrcpyArguments.buildAudioOnly(settings: s, serial: nil)
+        XCTAssertTrue(args.contains("--audio-codec=aac"))
+        XCTAssertTrue(args.contains("--audio-output-buffer=100"))
+
+        s.audioCodec = 2
+        XCTAssertTrue(ScrcpyArguments.buildAudioOnly(settings: s, serial: nil).contains("--audio-codec=raw"))
+    }
+
+    func testAudioOnlyKeepsCustomArgumentsFirst() {
+        var s = settings()
+        s.customArguments = "  --stay-awake "
+        var args = ScrcpyArguments.buildAudioOnly(settings: s, serial: nil)
+        XCTAssertEqual(args.first, "--stay-awake")
+        args = ScrcpyArguments.buildAudioOnly(settings: settings(), serial: nil)
+        XCTAssertEqual(args.first, "--no-video")
+    }
+
     func testCustomArgumentsSplitOnWhitespace() {
         var s = settings()
         s.customArguments = "  --max-size=1024   --stay-awake\t--no-audio "
