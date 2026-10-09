@@ -509,6 +509,9 @@
     "On" : {
 
     },
+    "On the phone, open Developer options → Wireless debugging → Pair device with QR code, then scan this code." : {
+
+    },
     "On the phone, turn on Message sync for this Mac, grant SMS permission, then reconnect." : {
 
     },
@@ -536,7 +539,16 @@
     "Pair" : {
 
     },
+    "Pair a phone over Wi-Fi without a USB cable." : {
+
+    },
     "Pair a phone to mirror its screen." : {
+
+    },
+    "Pair over Wi-Fi" : {
+
+    },
+    "Pair…" : {
 
     },
     "Pairing, clipboard, and notifications are coming next." : {
@@ -828,6 +840,9 @@
 
     },
     "Window" : {
+
+    },
+    "Wireless debugging (QR code)" : {
 
     }
   },

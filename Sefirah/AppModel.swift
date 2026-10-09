@@ -1210,6 +1210,23 @@ final class AppModel: PairingDecider {
         return bundledTools?.adb
     }
 
+    /// True when adb is available for Wireless-debugging QR pairing.
+    var canWirelessPair: Bool { resolvedAdb != nil }
+
+    /// Builds a model for the Wireless-debugging QR pairing sheet, or nil when adb is unavailable.
+    func makeWirelessPairingModel() -> WirelessPairingModel? {
+        guard let adb = resolvedAdb else { return nil }
+        var env = ProcessInfo.processInfo.environment
+        if env["HOME"] == nil { env["HOME"] = NSHomeDirectory() }
+        if env["PATH"] == nil { env["PATH"] = ScrcpyLaunchPlanner.defaultPath }
+        // Force the built-in mDNS backend on older platform-tools; harmless on current ones.
+        env["ADB_MDNS_OPENSCREEN"] = "1"
+        let context = WirelessPairingContext(adb: adb, environment: env, runner: commandRunner)
+        return WirelessPairingModel(context: context) { [weak self] _ in
+            Task { @MainActor in await self?.refreshAdbOnlineState() }
+        }
+    }
+
     func restartAdbServer() {
         guard let adb = resolvedAdb else {
             adbRestartResult = "No adb available."

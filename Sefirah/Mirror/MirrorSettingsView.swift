@@ -7,6 +7,7 @@ struct MirrorSettingsView: View {
     @Bindable var model: AppModel
     let deviceId: String?
     @State private var unlockConfiguration: UnlockConfiguration?
+    @State private var wirelessPairing: WirelessPairingModel?
 
     var body: some View {
         let _ = model.deviceSettingsRevision
@@ -24,6 +25,7 @@ struct MirrorSettingsView: View {
 
             if let deviceId {
                 deviceSection(deviceId)
+                    .sheet(item: $wirelessPairing) { WirelessPairingView(model: $0) }
             } else {
                 Text("Select a paired device to edit its mirroring options.").font(.caption).foregroundStyle(.secondary)
             }
@@ -36,6 +38,17 @@ struct MirrorSettingsView: View {
     @ViewBuilder
     private func deviceSection(_ id: String) -> some View {
         Toggle("Connect over Wi-Fi (ADB TCP/IP)", isOn: bind(id, \.adbTcpipModeEnabled))
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Wireless debugging (QR code)")
+                Text("Pair a phone over Wi-Fi without a USB cable.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Pair…") { wirelessPairing = model.makeWirelessPairingModel() }
+                .disabled(!model.canWirelessPair)
+        }
         Toggle("Turn phone screen off while mirroring", isOn: bind(id, \.screenOff))
         Toggle("Physical keyboard (UHID)", isOn: bind(id, \.physicalKeyboard))
         Toggle("Sync clipboard automatically", isOn: bind(id, \.scrcpyClipboardAutosync))
