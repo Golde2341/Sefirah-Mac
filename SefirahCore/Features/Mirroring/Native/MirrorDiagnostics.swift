@@ -15,8 +15,8 @@ public enum MirrorDiagnostics {
                     return "Reconnect Wi-Fi ADB (Settings ▸ Restart ADB server) or plug the phone in over USB."
                 }
                 return nil
-            case .connectFailed, .noUsbDeviceForTcpip:
-                return "Enable Wireless debugging, or connect once over USB so Sefirah can switch the phone to TCP/IP mode."
+            case .connectFailed, .noDeviceFound:
+                return "Enable Wireless debugging, or connect once over USB so Sefirah can switch the phone to TCP/IP mode (port 6767)."
             case .timeout:
                 return "adb did not respond; try Settings ▸ Restart ADB server."
             case .spawnFailed:

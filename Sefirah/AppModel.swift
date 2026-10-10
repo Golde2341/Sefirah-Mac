@@ -320,7 +320,7 @@ final class AppModel: PairingDecider {
 
         if let devices = try? await client.devices(), devices.contains(where: { device in
             device.state == "offline"
-                && (device.serial == "\(peer.address):5555"
+                && (device.serial.hasPrefix(peer.address + ":")
                     || AdbOutput.modelMatches(adbModel: device.model, peerModel: peer.model))
         }) {
             mirrorLaunchLog.info("Wake skipped: \(peer.name, privacy: .public) is offline in adb")
@@ -623,12 +623,14 @@ final class AppModel: PairingDecider {
         let online = devices.filter { $0.state == "device" }
         var serials: [String: String] = [:]
         for peer in paired {
-            let match = online.first { device in
-                device.serial == "\(peer.address):5555"
-                    || (device.isTcp && device.serial.hasPrefix("\(peer.address):"))
-                    || AdbOutput.modelMatches(adbModel: device.model, peerModel: peer.model)
+            // Passive snapshot ordered by priority (USB → TCP/IP :6767 → wireless); no adb
+            // connects here so the periodic refresh stays cheap. Active interactions (mirror,
+            // phone audio, wake) go through `resolveConnection` and open ports as needed.
+            if let best = AdbConnectionPriority.candidates(
+                devices: online, address: peer.address, model: peer.model
+            ).first {
+                serials[peer.id] = best.serial
             }
-            if let match { serials[peer.id] = match.serial }
         }
         adbSerials = serials
     }
@@ -689,29 +691,12 @@ final class AppModel: PairingDecider {
             return
         }
 
-        // Optional Wi-Fi connect + serial selection.
+        // Optional Wi-Fi connect + serial selection (USB → TCP/IP :6767 → wireless debugging).
         let adbClient = base.adb.map { AdbClient(adb: $0, environment: base.environment, runner: commandRunner) }
         var serial: String?
         if let client = adbClient {
-            if deviceSettings.adbTcpipModeEnabled {
-                do {
-                    serial = try await client.tryConnectTcp(host: device.address, model: device.model)
-                } catch {
-                    toolFailure = ToolFailure(
-                        title: "Could not reach \(device.name) over ADB",
-                        message: error.localizedDescription,
-                        detail: "Enable Wireless debugging, or connect once over USB so Sefirah can switch the phone to TCP/IP mode.",
-                        retryAction: { [weak self] in
-                            self?.launchScrcpy(package: package, appName: appName)
-                        }
-                    )
-                    return
-                }
-            } else if let devices = try? await client.devices() {
-                serial = ScrcpyDeviceSelection.serial(
-                    devices: devices, peerModel: device.model, preference: deviceSettings.scrcpyDevicePreference
-                )
-            } // adb listing failures are non-fatal here; scrcpy reports its own error which we surface on exit.
+            serial = await client.resolveConnection(address: device.address, model: device.model)?.serial
+            // Resolution failures are non-fatal here; scrcpy reports its own error which we surface on exit.
         }
 
         // Unlock-before-launch (parity with MirrorSession.run): wake/unlock the phone before scrcpy
@@ -862,18 +847,13 @@ final class AppModel: PairingDecider {
             return
         }
 
-        // Reuse the periodic adb snapshot when available; otherwise connect/select like the mirror.
+        // Reuse the periodic adb snapshot when available; otherwise resolve like the mirror
+        // (USB → TCP/IP :6767 → wireless debugging).
         var serial: String? = adbSerials[device.id]
         if serial == nil,
            let client = base.adb.map({ AdbClient(adb: $0, environment: base.environment, runner: commandRunner) })
         {
-            if deviceSettings.adbTcpipModeEnabled {
-                serial = try? await client.tryConnectTcp(host: device.address, model: device.model)
-            } else if let devices = try? await client.devices() {
-                serial = ScrcpyDeviceSelection.serial(
-                    devices: devices, peerModel: device.model, preference: deviceSettings.scrcpyDevicePreference
-                )
-            }
+            serial = await client.resolveConnection(address: device.address, model: device.model)?.serial
         }
 
         let plan = serial.flatMap { try? makePlan($0) } ?? base
@@ -1249,30 +1229,28 @@ final class AppModel: PairingDecider {
         let adbURL = resolvedAdb ?? tools.adb
         let client = AdbClient(adb: adbURL, environment: env, runner: commandRunner)
 
-        // Resolve the serial exactly like the external launch, but the native session needs one.
+        // Resolve the serial with the connection priority (USB → TCP/IP :6767 → wireless
+        // debugging) — exactly like the external launch, but a native session needs a serial, so
+        // fall back to the single online device when nothing matches the peer.
         let serial: String
-        do {
-            if deviceSettings.adbTcpipModeEnabled {
-                serial = try await client.tryConnectTcp(host: device.address, model: device.model)
-            } else {
-                let devices = try await client.devices()
-                if let chosen = ScrcpyDeviceSelection.serial(devices: devices, peerModel: device.model, preference: deviceSettings.scrcpyDevicePreference) {
-                    serial = chosen
-                } else {
-                    let online = devices.filter { $0.state == "device" }
-                    guard let only = online.first else {
-                        controller.fail(.noDevice)
-                        return
-                    }
-                    serial = only.serial
-                }
+        if let connection = await client.resolveConnection(address: device.address, model: device.model) {
+            serial = connection.serial
+        } else {
+            let devices: [AdbDevice]
+            do {
+                devices = try await client.devices()
+            } catch let error as AdbError {
+                controller.fail(.adb(error))
+                return
+            } catch {
+                controller.fail(.adb(.spawnFailed(error.localizedDescription)))
+                return
             }
-        } catch let error as AdbError {
-            controller.fail(.adb(error))
-            return
-        } catch {
-            controller.fail(.adb(.spawnFailed(error.localizedDescription)))
-            return
+            guard let only = devices.first(where: { $0.state == "device" }) else {
+                controller.fail(.noDevice)
+                return
+            }
+            serial = only.serial
         }
 
         let built: ServerOptionsBuilder.Result

@@ -40,53 +40,112 @@ final class AdbClientTests: XCTestCase {
         return c
     }
 
-    func testConnectOkFirstTry() async throws {
-        let runner = FakeCommandRunner([ok("connected to 10.0.0.2:5555")])
-        let serial = try await client(runner).tryConnectTcp(host: "10.0.0.2", model: "Pixel 7")
-        XCTAssertEqual(serial, "10.0.0.2:5555")
-        XCTAssertEqual(runner.calls, [["connect", "10.0.0.2:5555"]])
-    }
-
-    func testConnectFailsThenUsbTcpipThenRetry() async throws {
+    func testResolveConnectionPrefersUsbAndEnablesTcpIp() async throws {
         let runner = FakeCommandRunner([
-            fail("failed to connect to '10.0.0.2:5555': Connection refused"),
             ok(deviceList),
-            ok("restarting in TCP mode port: 5555"),
-            ok("connected to 10.0.0.2:5555"),
+            ok("restarting in TCP mode port: 6767"),
+            ok("connected to 10.0.0.2:6767"),
         ])
-        let serial = try await client(runner).tryConnectTcp(host: "10.0.0.2", model: "Pixel 7")
-        XCTAssertEqual(serial, "10.0.0.2:5555")
+        let connection = await client(runner).resolveConnection(address: "10.0.0.2", model: "Pixel 7")
+        XCTAssertEqual(connection, AdbConnection(kind: .usb, serial: "USB1"))
         XCTAssertEqual(runner.calls, [
-            ["connect", "10.0.0.2:5555"],
             ["devices", "-l"],
-            ["-s", "USB1", "tcpip", "5555"],
-            ["connect", "10.0.0.2:5555"],
+            ["-s", "USB1", "tcpip", "6767"],
+            ["connect", "10.0.0.2:6767"],
         ])
     }
 
-    func testNoUsbMatchThrows() async {
+    func testResolveConnectionSkipsSwitchWhenTcpIpEndpointAlreadyUp() async throws {
         let runner = FakeCommandRunner([
-            fail("cannot connect"),
-            ok("List of devices attached\nUSB1 device model:Pixel_8\n"),
+            ok("""
+            List of devices attached
+            USB1   device usb:1-1 model:Pixel_7 transport_id:1
+            10.0.0.2:6767   device model:Pixel_7 transport_id:2
+            """),
         ])
-        do {
-            _ = try await client(runner).tryConnectTcp(host: "10.0.0.2", model: "Pixel 7")
-            XCTFail("expected throw")
-        } catch {
-            XCTAssertEqual(error as? AdbError, .noUsbDeviceForTcpip(model: "Pixel 7"))
-        }
+        let connection = await client(runner).resolveConnection(address: "10.0.0.2", model: "Pixel 7")
+        XCTAssertEqual(connection, AdbConnection(kind: .usb, serial: "USB1"))
+        XCTAssertEqual(runner.calls, [["devices", "-l"]])
+    }
+
+    func testResolveConnectionPicksKnownTcpIp() async throws {
+        let runner = FakeCommandRunner([
+            ok("List of devices attached\n10.0.0.2:6767 device model:Pixel_7 transport_id:2\n"),
+        ])
+        let connection = await client(runner).resolveConnection(address: "10.0.0.2", model: "Pixel 7")
+        XCTAssertEqual(connection, AdbConnection(kind: .tcpip, serial: "10.0.0.2:6767"))
+        XCTAssertEqual(runner.calls, [["devices", "-l"]])
+    }
+
+    func testResolveConnectionConnectsTcpIpOnDemand() async throws {
+        let runner = FakeCommandRunner([
+            ok("List of devices attached\n"),
+            ok("connected to 10.0.0.2:6767"),
+        ])
+        let connection = await client(runner).resolveConnection(address: "10.0.0.2", model: "Pixel 7")
+        XCTAssertEqual(connection, AdbConnection(kind: .tcpip, serial: "10.0.0.2:6767"))
+        XCTAssertEqual(runner.calls, [
+            ["devices", "-l"],
+            ["connect", "10.0.0.2:6767"],
+        ])
+    }
+
+    func testResolveConnectionFallsBackToWirelessDebugging() async throws {
+        let runner = FakeCommandRunner([
+            ok("List of devices attached\n"),
+            fail("failed to connect to '10.0.0.2:6767': Connection refused"),
+            ok("adb-tls-connect-abc\t_adb-tls-connect._tcp.\t10.0.0.2:41234\n"),
+            ok("connected to 10.0.0.2:41234"),
+        ])
+        let connection = await client(runner).resolveConnection(address: "10.0.0.2", model: "Pixel 7")
+        XCTAssertEqual(connection, AdbConnection(kind: .wireless, serial: "10.0.0.2:41234"))
+        XCTAssertEqual(runner.calls, [
+            ["devices", "-l"],
+            ["connect", "10.0.0.2:6767"],
+            ["mdns", "services"],
+            ["connect", "10.0.0.2:41234"],
+        ])
+    }
+
+    func testResolveConnectionReturnsNilWhenNothingAvailable() async {
+        let runner = FakeCommandRunner([
+            ok("List of devices attached\n"),
+            fail("failed to connect to '10.0.0.2:6767': Connection refused"),
+            ok("No services found\n"),
+        ])
+        let connection = await client(runner).resolveConnection(address: "10.0.0.2", model: "Pixel 7")
+        XCTAssertNil(connection)
+    }
+
+    func testEnableTcpIpConnectsAndReportsSerial() async throws {
+        let runner = FakeCommandRunner([
+            ok("restarting in TCP mode port: 6767"),
+            ok("connected to 10.0.0.2:6767"),
+        ])
+        let serial = await client(runner).enableTcpIp(serial: "USB1", address: "10.0.0.2")
+        XCTAssertEqual(serial, "10.0.0.2:6767")
+        XCTAssertEqual(runner.calls, [
+            ["-s", "USB1", "tcpip", "6767"],
+            ["connect", "10.0.0.2:6767"],
+        ])
+    }
+
+    func testEnableTcpIpKeepsExistingConnectionWhenSwitchFails() async {
+        let runner = FakeCommandRunner([fail("adbd is already running as root")])
+        let serial = await client(runner).enableTcpIp(serial: "USB1", address: "10.0.0.2")
+        XCTAssertNil(serial)
     }
 
     func testWakeCompanionConnectsThenStartsService() async throws {
         let runner = FakeCommandRunner([
-            ok("connected to 10.0.0.2:5555"),
+            ok("List of devices attached\n10.0.0.2:6767 device model:Pixel_7 transport_id:2\n"),
             ok("Starting service: Intent { act=CONNECT cmp=com.castle.sefirah/sefirah.network.NetworkService }"),
         ])
         try await client(runner).wakeCompanion(host: "10.0.0.2", model: "Pixel 7")
         XCTAssertEqual(runner.calls, [
-            ["connect", "10.0.0.2:5555"],
+            ["devices", "-l"],
             [
-                "-s", "10.0.0.2:5555", "shell",
+                "-s", "10.0.0.2:6767", "shell",
                 "am", "start-foreground-service",
                 "-n", "com.castle.sefirah/sefirah.network.NetworkService",
                 "-a", "CONNECT",
@@ -94,9 +153,23 @@ final class AdbClientTests: XCTestCase {
         ])
     }
 
+    func testWakeCompanionThrowsWhenNoDeviceReachable() async {
+        let runner = FakeCommandRunner([
+            ok("List of devices attached\n"),
+            fail("cannot connect to 10.0.0.2:6767: Operation timed out"),
+            ok("No services found\n"),
+        ])
+        do {
+            try await client(runner).wakeCompanion(host: "10.0.0.2", model: "Pixel 7")
+            XCTFail("expected throw")
+        } catch {
+            XCTAssertEqual(error as? AdbError, .noDeviceFound(model: "Pixel 7"))
+        }
+    }
+
     func testWakeCompanionThrowsWhenServiceStartFails() async {
         let runner = FakeCommandRunner([
-            ok("connected to 10.0.0.2:5555"),
+            ok("List of devices attached\n10.0.0.2:6767 device model:Pixel_7 transport_id:2\n"),
             fail("Error: Not found; no service started"),
         ])
         do {
@@ -158,7 +231,7 @@ final class AdbClientTests: XCTestCase {
             _ = try await client(runner).connect(host: "10.0.0.2")
             XCTFail("expected throw")
         } catch {
-            XCTAssertEqual(error as? AdbError, .timeout(command: "connect 10.0.0.2:5555"))
+            XCTAssertEqual(error as? AdbError, .timeout(command: "connect 10.0.0.2:6767"))
         }
     }
 
@@ -176,14 +249,65 @@ final class AdbClientTests: XCTestCase {
     }
 
     func testConnectExitZeroButFailedOutput() async {
-        let runner = FakeCommandRunner([ok("failed to connect to '10.0.0.2:5555'")])
+        let runner = FakeCommandRunner([ok("failed to connect to '10.0.0.2:6767'")])
         do {
             _ = try await client(runner).connect(host: "10.0.0.2")
             XCTFail("expected throw")
         } catch {
             guard case .connectFailed(let host, _)? = error as? AdbError else { return XCTFail("\(error)") }
-            XCTAssertEqual(host, "10.0.0.2:5555")
+            XCTAssertEqual(host, "10.0.0.2:6767")
         }
+    }
+}
+
+final class AdbConnectionPriorityTests: XCTestCase {
+    private let usb = AdbDevice(serial: "USB1", state: "device", model: "Pixel_7")
+    private let tcpip = AdbDevice(serial: "10.0.0.2:6767", state: "device", model: "Pixel_7")
+    private let wireless = AdbDevice(serial: "10.0.0.2:41234", state: "device", model: "Pixel_7")
+
+    func testRanksUsbBeforeTcpIpBeforeWireless() {
+        let ordered = AdbConnectionPriority.candidates(
+            devices: [wireless, tcpip, usb], address: "10.0.0.2", model: "Pixel 7"
+        )
+        XCTAssertEqual(ordered, [
+            AdbConnection(kind: .usb, serial: "USB1"),
+            AdbConnection(kind: .tcpip, serial: "10.0.0.2:6767"),
+            AdbConnection(kind: .wireless, serial: "10.0.0.2:41234"),
+        ])
+    }
+
+    func testSkipsOfflineAndForeignDevices() {
+        let offlineUsb = AdbDevice(serial: "USB9", state: "offline", model: "Pixel_7")
+        let otherModel = AdbDevice(serial: "USB2", state: "device", model: "Pixel_8")
+        let otherPhone = AdbDevice(serial: "10.0.0.9:6767", state: "device", model: "PhoneX")
+        let ordered = AdbConnectionPriority.candidates(
+            devices: [offlineUsb, otherModel, otherPhone], address: "10.0.0.2", model: "Pixel 7"
+        )
+        XCTAssertEqual(ordered, [])
+    }
+
+    func testAddressOnlyMatchStillQualifiesTcp() {
+        // Model unknown (nil) but the serial is the peer's own address:6767.
+        let device = AdbDevice(serial: "10.0.0.2:6767", state: "device", model: nil)
+        let ordered = AdbConnectionPriority.candidates(
+            devices: [device], address: "10.0.0.2", model: "Pixel 7"
+        )
+        XCTAssertEqual(ordered, [AdbConnection(kind: .tcpip, serial: "10.0.0.2:6767")])
+    }
+
+    func testDeduplicatesSerials() {
+        let ordered = AdbConnectionPriority.candidates(
+            devices: [tcpip, tcpip], address: "10.0.0.2", model: "Pixel 7"
+        )
+        XCTAssertEqual(ordered, [AdbConnection(kind: .tcpip, serial: "10.0.0.2:6767")])
+    }
+
+    func testCustomPortIsRespected() {
+        let custom = AdbDevice(serial: "10.0.0.2:7777", state: "device", model: "Pixel_7")
+        let ordered = AdbConnectionPriority.candidates(
+            devices: [custom], address: "10.0.0.2", model: "Pixel 7", tcpipPort: 7777
+        )
+        XCTAssertEqual(ordered, [AdbConnection(kind: .tcpip, serial: "10.0.0.2:7777")])
     }
 }
 

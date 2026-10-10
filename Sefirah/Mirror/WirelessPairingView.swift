@@ -126,8 +126,19 @@ final class WirelessPairingModel: Identifiable {
 
         phase = .connecting
         if let serial = await connect(client: client, host: pairing.host) {
-            phase = .connected(serial: serial)
-            onConnected(serial)
+            // A QR pairing also opens the classic TCP/IP port (6767) so Sefirah keeps a stable
+            // `ip:6767` endpoint going forward. Restarting adbd drops the wireless transport, so
+            // if the switch fails we restore the wireless connection instead.
+            let preferred: String
+            if let tcpSerial = await client.enableTcpIp(serial: serial, address: pairing.host) {
+                preferred = tcpSerial
+            } else if let restored = await client.connectWirelessDevice(address: pairing.host) {
+                preferred = restored
+            } else {
+                preferred = serial
+            }
+            phase = .connected(serial: preferred)
+            onConnected(preferred)
         } else {
             phase = .failed("Paired, but could not connect. Keep Wireless debugging on and try again.")
         }

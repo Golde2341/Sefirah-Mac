@@ -37,7 +37,12 @@ struct MirrorSettingsView: View {
 
     @ViewBuilder
     private func deviceSection(_ id: String) -> some View {
-        Toggle("Connect over Wi-Fi (ADB TCP/IP)", isOn: bind(id, \.adbTcpipModeEnabled))
+        VStack(alignment: .leading, spacing: 2) {
+            Text("ADB connection")
+            Text("USB is always preferred, then Wi-Fi (port 6767), then wireless debugging.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Wireless debugging (QR code)")

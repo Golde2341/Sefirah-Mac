@@ -35,7 +35,7 @@ public enum AdbError: Error, Equatable, LocalizedError {
     case spawnFailed(String)
     case timeout(command: String)
     case connectFailed(host: String, message: String)
-    case noUsbDeviceForTcpip(model: String)
+    case noDeviceFound(model: String)
     case commandFailed(command: String, exitCode: Int32, stderr: String)
 
     public var errorDescription: String? {
@@ -46,8 +46,8 @@ public enum AdbError: Error, Equatable, LocalizedError {
             return "adb timed out: \(command)"
         case .connectFailed(let host, let message):
             return "adb could not connect to \(host): \(message)"
-        case .noUsbDeviceForTcpip(let model):
-            return "No USB device matching \(model) is available to switch to TCP/IP mode."
+        case .noDeviceFound(let model):
+            return "No device matching \(model) is reachable over USB, TCP/IP or wireless debugging."
         case .commandFailed(let command, let exitCode, let stderr):
             return "adb \(command) failed (exit \(exitCode))\(stderr.isEmpty ? "" : ": \(stderr)")"
         }
@@ -187,7 +187,7 @@ public struct AdbClient: Sendable {
     }
 
     /// `adb connect host:port` → serial
-    public func connect(host: String, port: Int = 5555) async throws -> String {
+    public func connect(host: String, port: Int = AdbTcpIp.defaultPort) async throws -> String {
         let target = "\(host):\(port)"
         let result = try await runner.run(adb, ["connect", target], environment: environment, timeout: 8)
         let combined = (result.stdout + "\n" + result.stderr)
@@ -198,29 +198,152 @@ public struct AdbClient: Sendable {
     }
 
     /// `adb -s serial tcpip port`
-    public func tcpip(serial: String, port: Int = 5555) async throws {
+    public func tcpip(serial: String, port: Int = AdbTcpIp.defaultPort) async throws {
         let result = try await runner.run(adb, ["-s", serial, "tcpip", String(port)], environment: environment, timeout: 5)
         guard result.exitCode == 0 else {
             throw AdbError.commandFailed(command: "-s \(serial) tcpip \(port)", exitCode: result.exitCode, stderr: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
         }
     }
+}
 
-    /// Port of legacy TryConnectTcp: connect → else USB device with matching model → tcpip → sleep → connect.
-    public func tryConnectTcp(host: String, model: String, port: Int = 5555) async throws -> String {
+// MARK: - Connection priority (USB → TCP/IP :6767 → wireless debugging)
+
+/// The classic adb-over-TCP port Sefirah uses. Deliberately not 5555: Shizuku occupies 5555 on
+/// the phone, so Sefirah's own ADB TCP/IP mode listens on 6767.
+public enum AdbTcpIp {
+    public static let defaultPort = 6767
+}
+
+/// Which transport an adb serial came from, in Sefirah's connection priority order.
+public enum AdbConnectionKind: String, Sendable, Equatable {
+    /// Priority 1 — a USB-attached device.
+    case usb
+    /// Priority 2 — classic `adb tcpip` on `AdbTcpIp.defaultPort` (`ip:6767`).
+    case tcpip
+    /// Priority 3 — Android 11+ wireless debugging (`adb pair` + mDNS).
+    case wireless
+}
+
+public struct AdbConnection: Equatable, Sendable {
+    public var kind: AdbConnectionKind
+    public var serial: String
+
+    public init(kind: AdbConnectionKind, serial: String) {
+        self.kind = kind
+        self.serial = serial
+    }
+}
+
+/// Pure priority ordering over the adb serials the server already knows about. No side effects —
+/// `AdbClient.resolveConnection` decides when to actively connect/switch.
+public enum AdbConnectionPriority {
+    /// USB (1st) → TCP/IP on `tcpipPort` (2nd) → any other TCP serial, i.e. wireless debugging
+    /// (3rd). Only devices matching the peer by model or by the peer's network address qualify;
+    /// duplicate serials are dropped.
+    public static func candidates(
+        devices: [AdbDevice],
+        address: String,
+        model: String,
+        tcpipPort: Int = AdbTcpIp.defaultPort
+    ) -> [AdbConnection] {
+        let tcpTarget = "\(address):\(tcpipPort)"
+        let matched = devices.filter { device in
+            device.state == "device"
+                && (AdbOutput.modelMatches(adbModel: device.model, peerModel: model)
+                    || device.serial == tcpTarget
+                    || device.serial.hasPrefix(address + ":"))
+        }
+
+        var result: [AdbConnection] = []
+        var seen: Set<String> = []
+
+        func add(_ kind: AdbConnectionKind, _ serial: String) {
+            if seen.insert(serial).inserted { result.append(AdbConnection(kind: kind, serial: serial)) }
+        }
+
+        if let usb = matched.first(where: { !$0.isTcp }) {
+            add(.usb, usb.serial)
+        }
+        if let tcp = matched.first(where: { $0.serial == tcpTarget })
+            ?? matched.first(where: { $0.isTcp && $0.serial.hasSuffix(":\(tcpipPort)") })
+        {
+            add(.tcpip, tcp.serial)
+        }
+        for device in matched where device.isTcp { add(.wireless, device.serial) }
+        return result
+    }
+}
+
+extension AdbClient {
+    /// Resolves the best adb serial for a peer, always trying the priorities in order:
+    ///   1. USB — the matching USB device (also enabling `address:6767` behind it, best effort).
+    ///   2. TCP/IP — `address:6767`, connecting it if the server doesn't already know it.
+    ///   3. Wireless debugging — an already-paired `_adb-tls-connect` mDNS service.
+    public func resolveConnection(
+        address: String,
+        model: String,
+        tcpipPort: Int = AdbTcpIp.defaultPort,
+        enableTcpIpOnUsb: Bool = true,
+        connectWireless: Bool = true
+    ) async -> AdbConnection? {
+        let devices = (try? await devices()) ?? []
+        let known = AdbConnectionPriority.candidates(
+            devices: devices, address: address, model: model, tcpipPort: tcpipPort
+        )
+
+        // 1. USB wins, and we still open the classic TCP port so the phone stays reachable after
+        //    the cable is unplugged — but USB remains the serial we hand back. Skipped when
+        //    `address:6767` is already up, so repeated resolutions don't churn adbd.
+        if let usb = known.first(where: { $0.kind == .usb }) {
+            if enableTcpIpOnUsb, !known.contains(where: { $0.kind == .tcpip }) {
+                _ = await enableTcpIp(serial: usb.serial, address: address, port: tcpipPort)
+            }
+            return usb
+        }
+
+        // 2. Classic TCP/IP on the configured port.
+        if let tcpip = known.first(where: { $0.kind == .tcpip }) { return tcpip }
+        if let serial = try? await connect(host: address, port: tcpipPort) {
+            return AdbConnection(kind: .tcpip, serial: serial)
+        }
+
+        // 3. Wireless debugging.
+        if connectWireless, let serial = await connectWirelessDevice(address: address) {
+            return AdbConnection(kind: .wireless, serial: serial)
+        }
+        return known.first(where: { $0.kind == .wireless })
+    }
+
+    /// `adb -s serial tcpip <port>` then `adb connect address:<port>`. Best effort — returns the
+    /// connected TCP serial on success, nil when the device can't be switched (the existing
+    /// connection is kept, e.g. USB stays the live transport).
+    @discardableResult
+    public func enableTcpIp(
+        serial: String,
+        address: String,
+        port: Int = AdbTcpIp.defaultPort
+    ) async -> String? {
         do {
-            return try await connect(host: host, port: port)
-        } catch AdbError.connectFailed {
-            // Fall through: try to switch a matching USB device to TCP/IP mode.
+            try await tcpip(serial: serial, port: port)
+        } catch {
+            return nil
         }
-        let devices = try await devices()
-        guard let usb = devices.first(where: {
-            $0.state == "device" && !$0.isTcp && AdbOutput.modelMatches(adbModel: $0.model, peerModel: model)
-        }) else {
-            throw AdbError.noUsbDeviceForTcpip(model: model)
+        if tcpipSettleDelay > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(tcpipSettleDelay * 1_000_000_000))
         }
-        try await tcpip(serial: usb.serial, port: port)
-        try await Task.sleep(nanoseconds: UInt64(tcpipSettleDelay * 1_000_000_000))
-        return try await connect(host: host, port: port)
+        return try? await connect(host: address, port: port)
+    }
+
+    /// Connects to one already-paired wireless-debugging device (`_adb-tls-connect` mDNS service),
+    /// preferring the service whose host is the peer's address and falling back to the only one
+    /// visible. Returns the connected serial, or nil.
+    public func connectWirelessDevice(address: String) async -> String? {
+        guard let services = try? await mdnsServices() else { return nil }
+        let connectServices = services.filter { $0.serviceType.hasPrefix(AdbWirelessPairing.connectServiceType) }
+        guard let service = connectServices.first(where: { $0.host == address }) ?? (connectServices.count == 1 ? connectServices[0] : nil) else {
+            return nil
+        }
+        return try? await connect(host: service.host, port: service.port)
     }
 }
 
@@ -300,11 +423,13 @@ public enum MediaKeyEvent {
 }
 
 extension AdbClient {
-    /// Connects to the device (TCP, falling back to switching a matching USB device to TCP/IP)
-    /// and asks the companion app to start its network service in the background.
+    /// Resolves the device with the connection priority (USB → TCP/IP → wireless debugging) and
+    /// asks the companion app to start its network service in the background.
     public func wakeCompanion(host: String, model: String) async throws {
-        let serial = try await tryConnectTcp(host: host, model: model)
-        let result = try await shell(serial: serial, CompanionWake.shellArguments, timeout: 10)
+        guard let connection = await resolveConnection(address: host, model: model) else {
+            throw AdbError.noDeviceFound(model: model)
+        }
+        let result = try await shell(serial: connection.serial, CompanionWake.shellArguments, timeout: 10)
         guard result.exitCode == 0 else {
             throw AdbError.commandFailed(
                 command: "start-foreground-service",

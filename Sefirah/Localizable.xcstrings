@@ -77,6 +77,9 @@
     "Actions" : {
 
     },
+    "ADB connection" : {
+
+    },
     "Add a command, or use the PIN lockscreen template." : {
 
     },
@@ -198,9 +201,6 @@
 
     },
     "Connect" : {
-
-    },
-    "Connect over Wi-Fi (ADB TCP/IP)" : {
 
     },
     "Connect your Android phone to share clipboard, notifications, messages, and more." : {
@@ -819,6 +819,9 @@
 
     },
     "Unpin" : {
+
+    },
+    "USB is always preferred, then Wi-Fi (port 6767), then wireless debugging." : {
 
     },
     "Use external scrcpy" : {

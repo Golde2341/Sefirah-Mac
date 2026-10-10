@@ -53,6 +53,8 @@ public struct DeviceSettings: Codable, Sendable, Equatable {
     public var forwardMicrophone: Bool
     public var audioOutputBuffer: Int
     public var audioCodec: Int
+    /// Legacy: superseded by the fixed connection priority (USB → TCP/IP 6767 → wireless).
+    /// Kept for settings round-trip compatibility; no longer read by any feature.
     public var scrcpyDevicePreference: ScrcpyDevicePreferenceType
     public var isVirtualDisplayEnabled: Bool
     public var flexDisplay: Bool
@@ -61,6 +63,8 @@ public struct DeviceSettings: Codable, Sendable, Equatable {
 
     public var adbPath: String
     public var autoConnect: Bool
+    /// Legacy: the "Connect over Wi-Fi (ADB TCP/IP)" toggle was removed in favour of the fixed
+    /// connection priority (USB → TCP/IP 6767 → wireless debugging). Kept for round-trip only.
     public var adbTcpipModeEnabled: Bool
     public var adbAutoConnect: Bool
 
