@@ -1343,6 +1343,31 @@ final class AppModel: PairingDecider {
     /// True when adb is available for Wireless-debugging QR pairing.
     var canWirelessPair: Bool { resolvedAdb != nil }
 
+    /// Whether adb currently sees the paired device (USB, TCP/IP or wireless debugging). Drives
+    /// the device rail's Connected button: green only when both the app and adb see the phone.
+    func isAdbConnected(_ deviceID: String) -> Bool { adbSerials[deviceID] != nil }
+
+    /// Actively resolves adb for a paired phone (USB → TCP/IP :6767 → wireless debugging), the same
+    /// way mirroring and phone audio do, and records the serial. Returns true when adb can now
+    /// reach the phone. The device rail's orange Connected button uses this so a click checks for
+    /// real instead of waiting on the passive periodic snapshot, and only offers QR pairing when
+    /// adb truly can't reach the phone.
+    func connectAdb(for deviceID: String) async -> Bool {
+        if adbSerials[deviceID] != nil { return true }
+        guard let device = paired.first(where: { $0.id == deviceID }), let adb = resolvedAdb else {
+            return false
+        }
+        var env = ProcessInfo.processInfo.environment
+        if env["HOME"] == nil { env["HOME"] = NSHomeDirectory() }
+        if env["PATH"] == nil { env["PATH"] = ScrcpyLaunchPlanner.defaultPath }
+        let client = AdbClient(adb: adb, environment: env, runner: commandRunner)
+        guard let connection = await client.resolveConnection(address: device.address, model: device.model) else {
+            return false
+        }
+        adbSerials[deviceID] = connection.serial
+        return true
+    }
+
     /// Builds a model for the Wireless-debugging QR pairing sheet, or nil when adb is unavailable.
     func makeWirelessPairingModel() -> WirelessPairingModel? {
         guard let adb = resolvedAdb else { return nil }

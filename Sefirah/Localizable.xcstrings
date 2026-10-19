@@ -77,7 +77,13 @@
     "Actions" : {
 
     },
+    "ADB can't see this phone yet. Click to connect over adb, or pair over Wi-Fi (QR code)." : {
+
+    },
     "ADB connection" : {
+
+    },
+    "ADB status: not connected" : {
 
     },
     "Add a command, or use the PIN lockscreen template." : {
@@ -144,6 +150,9 @@
 
     },
     "Bundled adb / scrcpy-server missing. Reinstall Sefirah or switch the backend in Settings." : {
+
+    },
+    "Bundled adb is unavailable — reinstall Sefirah or set a custom adb path in Settings." : {
 
     },
     "Bundled adb/scrcpy is missing. Reinstall Sefirah or set a custom scrcpy path in Settings." : {
@@ -560,6 +569,9 @@
     "Pause after this command, in milliseconds" : {
 
     },
+    "Phone not connected to adb" : {
+
+    },
     "Phone only (no audio stream)" : {
 
     },
@@ -771,6 +783,9 @@
 
     },
     "System" : {
+
+    },
+    "The app can reach %@, but adb can't see it. Mirroring and clipboard features will not be available until the phone is connected over adb." : {
 
     },
     "The mirror keeps working read-only; toolbar keys, screen off and clipboard sync are unaffected." : {

@@ -5,6 +5,9 @@ struct DeviceRailView: View {
     @Bindable var model: AppModel
 
     private let streamOrder: [AudioStreamType] = [.media, .ring, .notification, .alarm, .voiceCall]
+    @State private var wirelessPairing: WirelessPairingModel?
+    @State private var showAdbInfo = false
+    @State private var isCheckingAdb = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -81,6 +84,7 @@ struct DeviceRailView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(item: $wirelessPairing) { WirelessPairingView(model: $0) }
     }
 
     private var ringerBinding: Binding<Int> {
@@ -93,13 +97,8 @@ struct DeviceRailView: View {
     private func deviceCard(_ device: ConnectedPeer) -> some View {
         VStack(alignment: .leading) {
             Text(device.name).font(.title3.weight(.semibold))
-            HStack {
-                Text(device.isConnected ? "Connected" : "Disconnected")
-                    .foregroundStyle(device.isConnected ? .green : .secondary)
-                if !device.isConnected {
-                    Button("Connect") { model.reconnect(device) }
-                        .controlSize(.small)
-                }
+            HStack(spacing: 8) {
+                deviceStatus(device)
             }
             if model.paired.count > 1 {
                 Picker("Device", selection: $model.selectedDeviceID) {
@@ -116,6 +115,67 @@ struct DeviceRailView: View {
             }
             Button("Forget Device", role: .destructive) { model.forget(device) }
         }
+    }
+
+    /// The selected phone's connection status. Green "Connected" once both the app and adb see the
+    /// phone. While adb can't see it, "Connected" becomes an orange button that re-checks adb and,
+    /// if the phone is still invisible to adb, opens the Wireless-debugging QR pairing sheet; the
+    /// info button explains which features need adb.
+    @ViewBuilder
+    private func deviceStatus(_ device: ConnectedPeer) -> some View {
+        if !device.isConnected {
+            Text("Disconnected").foregroundStyle(.secondary)
+            Button("Connect") { model.reconnect(device) }
+                .controlSize(.small)
+        } else if model.isAdbConnected(device.id) {
+            Text("Connected").foregroundStyle(.green)
+        } else {
+            Button("Connected") {
+                isCheckingAdb = true
+                Task {
+                    let connected = await model.connectAdb(for: device.id)
+                    isCheckingAdb = false
+                    if !connected {
+                        wirelessPairing = model.makeWirelessPairingModel()
+                    }
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.orange)
+            .controlSize(.small)
+            .disabled(!model.canWirelessPair || isCheckingAdb)
+            .help("ADB can't see this phone yet. Click to connect over adb, or pair over Wi-Fi (QR code).")
+            Button {
+                showAdbInfo = true
+            } label: {
+                Image(systemName: "info.circle")
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            .help("ADB status: not connected")
+            .popover(isPresented: $showAdbInfo, arrowEdge: .bottom) {
+                adbInfoPopover(device)
+            }
+        }
+    }
+
+    private func adbInfoPopover(_ device: ConnectedPeer) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Phone not connected to adb", systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .font(.callout.weight(.medium))
+            Text("The app can reach \(device.name), but adb can't see it. Mirroring and clipboard features will not be available until the phone is connected over adb.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if !model.canWirelessPair {
+                Text("Bundled adb is unavailable — reinstall Sefirah or set a custom adb path in Settings.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+        .padding(12)
+        .frame(width: 280)
     }
 
     private func mediaCard(_ session: PlaybackInfo, connected: Bool) -> some View {
