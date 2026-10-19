@@ -139,12 +139,20 @@ Requires Xcode 16+, [XcodeGen](https://github.com/yonaskolb/XcodeGen), macOS 14+
 
 ```sh
 scripts/fetch-scrcpy.sh   # vendors scrcpy/adb/scrcpy-server (pinned in scripts/scrcpy.lock)
+scripts/fetch-rclone.sh   # vendors universal rclone for the Finder mount (pinned in scripts/rclone.lock)
 xcodegen generate
 xcodebuild -scheme Sefirah -destination 'platform=macOS' test
 ```
 
 Open `Sefirah.xcodeproj` after generating. `xcodegen generate` fails if `Vendor/scrcpy/` has not been
-populated, and a pre-build script fails the build if the vendored version drifts from the lock file.
+populated, and a pre-build script fails the build if `Vendor/scrcpy/` or `Vendor/rclone/` is missing
+or drifts from its lock file.
+
+`Vendor/rclone/` (the universal binary is ~176 MB) is not checked in: the fetch script downloads the
+pinned arm64 and x86_64 release zips, verifies their SHA-256 against `scripts/rclone.lock`,
+`lipo`-merges them into a single universal `rclone`, and ad-hoc signs it — Xcode re-signs it with the
+app identity when it is copied into the bundle. Re-run with `--force` to re-fetch, or point
+`RCLONE_FETCH_TMP=<dir>` at a folder of already-downloaded zips.
 
 > **Contributors:** the checked-in project carries manual wiring that XcodeGen can't model (the
 > Icon Composer bundles `Sefirah.icon` / `SefirahPhone.icon` and the full-bleed legacy icon script).
