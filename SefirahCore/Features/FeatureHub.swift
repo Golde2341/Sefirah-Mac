@@ -75,6 +75,9 @@ public enum FeatureEffect: Equatable, Sendable {
     case applyClipboard(ClipboardInfo)
     case receiveFiles(FileTransferInfo)
     case executeAction(ActionExecution)
+    /// The companion reported its current wallpaper (`DeviceInfo.avatar`); already persisted, and
+    /// published here so the device rail can refresh its phone preview.
+    case updateDeviceWallpaper(Data)
 }
 
 public struct FeatureResult: Equatable, Sendable {
@@ -140,6 +143,12 @@ public final class FeatureHub: @unchecked Sendable {
             try persistCallLog(deviceId: deviceId, log)
         case .batteryState(let battery):
             state.battery = battery
+        case .deviceInfo(let info):
+            if let wallpaper = Self.wallpaperData(from: info.avatar),
+               try storeWallpaper(deviceId: deviceId, data: wallpaper)
+            {
+                effects.append(.updateDeviceWallpaper(wallpaper))
+            }
         case .ringerModeState(let ringer):
             state.ringerMode = ringer.mode
         case .audioStreamState(let stream):
@@ -530,6 +539,25 @@ public final class FeatureHub: @unchecked Sendable {
         )
         try database.dbQueue.write { db in
             try record.save(db)
+        }
+    }
+
+    /// `DeviceInfo.avatar` carries the phone's current wallpaper as base64 (same field the legacy
+    /// desktop app stored as `WallpaperBytes`).
+    private static func wallpaperData(from avatar: String?) -> Data? {
+        guard let avatar, !avatar.isEmpty,
+              let data = Data(base64Encoded: avatar, options: .ignoreUnknownCharacters),
+              !data.isEmpty
+        else { return nil }
+        return data
+    }
+
+    private func storeWallpaper(deviceId: String, data: Data) throws -> Bool {
+        try database.dbQueue.write { db in
+            guard var record = try PairedDeviceRecord.fetchOne(db, key: deviceId) else { return false }
+            record.wallpaperBytes = data
+            try record.update(db)
+            return true
         }
     }
 

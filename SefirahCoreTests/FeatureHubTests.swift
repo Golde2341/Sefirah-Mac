@@ -265,6 +265,29 @@ final class FeatureHubTests: XCTestCase {
         XCTAssertNotNil(NSImage(data: icon))
     }
 
+    func testDeviceInfoStoresWallpaper() throws {
+        let db = try AppDatabase(inMemory: ())
+        let repo = DeviceRepository(database: db)
+        try repo.upsertPairedDevice(PairedDeviceRecord(
+            deviceId: "phone", name: "Pixel", model: "Pixel 7", certificate: Data([0x30])
+        ))
+        let hub = FeatureHub(database: db)
+        let png = try sampleIconPNG()
+
+        let result = try hub.handle(deviceId: "phone", .deviceInfo(DeviceInfo(
+            deviceName: "Pixel", avatar: png.base64EncodedString()
+        )))
+        XCTAssertEqual(result.effects, [.updateDeviceWallpaper(png)])
+        XCTAssertEqual(try repo.fetchPairedDevice(id: "phone")?.wallpaperBytes, png)
+
+        // Invalid payloads are ignored instead of clearing the stored wallpaper.
+        let invalid = try hub.handle(deviceId: "phone", .deviceInfo(DeviceInfo(
+            deviceName: "Pixel", avatar: "not base64!"
+        )))
+        XCTAssertTrue(invalid.effects.isEmpty)
+        XCTAssertEqual(try repo.fetchPairedDevice(id: "phone")?.wallpaperBytes, png)
+    }
+
     func testPlaybackOrderPutsMostRecentFirst() throws {
         let hub = try makeHub()
         _ = try hub.handle(deviceId: "phone", .playbackInfo(

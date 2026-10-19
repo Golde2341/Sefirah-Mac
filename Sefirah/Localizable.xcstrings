@@ -11,6 +11,9 @@
         }
       }
     },
+    "%@ wallpaper" : {
+
+    },
     "%@ wants to pair with this Mac. Confirm the code matches on both devices." : {
 
     },
@@ -573,6 +576,9 @@
 
     },
     "Phone only (no audio stream)" : {
+
+    },
+    "Phone preview" : {
 
     },
     "Phone screen is off" : {

@@ -1,3 +1,4 @@
+import AppKit
 import SefirahCore
 import SwiftUI
 
@@ -12,20 +13,26 @@ struct DeviceRailView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let device = model.selectedDevice {
-                deviceCard(device)
+                HStack(alignment: .top, spacing: 12) {
+                    phonePreview(device)
+                    VStack(alignment: .leading, spacing: 8) {
+                        deviceCard(device)
+                        Picker("Ringer", selection: ringerBinding) {
+                            Text("Silent").tag(0)
+                            Text("Vibrate").tag(1)
+                            Text("Ring").tag(2)
+                        }
+                        .pickerStyle(.segmented)
+                        .disabled(!device.isConnected)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 if let battery = model.live.battery {
                     Label(
                         "\(battery.batteryLevel)%\(battery.isCharging ? " charging" : "")",
                         systemImage: battery.isCharging ? "battery.100.bolt" : "battery.100"
                     )
                 }
-                Picker("Ringer", selection: ringerBinding) {
-                    Text("Silent").tag(0)
-                    Text("Vibrate").tag(1)
-                    Text("Ring").tag(2)
-                }
-                .pickerStyle(.segmented)
-                .disabled(!device.isConnected)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Volume").font(.caption).foregroundStyle(.secondary)
@@ -92,6 +99,40 @@ struct DeviceRailView: View {
             get: { model.live.ringerMode ?? 2 },
             set: { model.setRingerMode($0) }
         )
+    }
+
+    /// Small phone frame showing the wallpaper the companion last reported, with the blue glow
+    /// placeholder from the legacy desktop app until one arrives.
+    private func phonePreview(_ device: ConnectedPeer) -> some View {
+        ZStack {
+            if let wallpaper = model.deviceWallpapers[device.id] {
+                Image(nsImage: wallpaper)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.0, green: 0.44, blue: 1.0),
+                        Color(red: 0.18, green: 0.56, blue: 1.0),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        }
+        .frame(width: 54, height: 100)
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.quaternary.opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(.primary.opacity(0.3), lineWidth: 1.5)
+        )
+        .help("\(device.name) wallpaper")
+        .accessibilityLabel("Phone preview")
     }
 
     private func deviceCard(_ device: ConnectedPeer) -> some View {

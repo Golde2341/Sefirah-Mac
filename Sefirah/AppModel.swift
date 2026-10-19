@@ -62,6 +62,9 @@ final class AppModel: PairingDecider {
     var qrDeepLink: String = ""
     var discovered: [DiscoveredPeer] = []
     var paired: [ConnectedPeer] = []
+    /// Phone wallpapers last reported by the companion, keyed by device id. Shown by the device
+    /// rail's phone preview.
+    var deviceWallpapers: [String: NSImage] = [:]
     var selectedDeviceID: String?
     var pendingPairing: DiscoveredPeer?
     var notifications: [NotificationSnapshot] = []
@@ -192,7 +195,8 @@ final class AppModel: PairingDecider {
             sessionError = error.localizedDescription
         }
 
-        paired = (try? DeviceRepository(database: db).fetchPairedDevices().map {
+        let pairedRecords = (try? DeviceRepository(database: db).fetchPairedDevices()) ?? []
+        paired = pairedRecords.map {
             ConnectedPeer(
                 id: $0.deviceId,
                 name: $0.name,
@@ -202,7 +206,12 @@ final class AppModel: PairingDecider {
                 certificateDER: $0.certificate,
                 isConnected: false
             )
-        }) ?? []
+        }
+        for record in pairedRecords {
+            if let data = record.wallpaperBytes, let image = NSImage(data: data) {
+                deviceWallpapers[record.deviceId] = image
+            }
+        }
         selectedDeviceID = paired.first?.id
         refreshDevice()
 
@@ -370,6 +379,7 @@ final class AppModel: PairingDecider {
         try? hub.forgetDevice(deviceId: peer.id)
         try? settings.deleteDevice(id: peer.id)
         paired.removeAll { $0.id == peer.id }
+        deviceWallpapers[peer.id] = nil
         if selectedDeviceID == peer.id {
             selectedDeviceID = paired.first?.id
             refreshDevice()
@@ -1712,6 +1722,10 @@ final class AppModel: PairingDecider {
                 startFileReceive(deviceId: deviceId, info: info)
             case .executeAction(let execution):
                 execute(execution)
+            case .updateDeviceWallpaper(let data):
+                if let image = NSImage(data: data) {
+                    deviceWallpapers[deviceId] = image
+                }
             }
         }
     }
