@@ -604,6 +604,37 @@ public struct FileTransferInfo: Codable, Sendable, Equatable {
     }
 }
 
+/// Common payload of `ShareTransfer` / `ClipboardTransfer`: the sending side runs a TLS server and
+/// the receiving side connects to `serverInfo.port` to pull the files
+/// (`start` / bytes / `complete` framing).
+public struct FileTransferPayload: Codable, Sendable, Equatable {
+    public var files: [FileMetadata]
+    public var serverInfo: ServerInfo
+
+    public init(files: [FileMetadata], serverInfo: ServerInfo) {
+        self.files = files
+        self.serverInfo = serverInfo
+    }
+}
+
+/// Desktop → phone file share: the Mac hosts the files and the phone pulls them.
+public struct ShareTransfer: Codable, Sendable, Equatable {
+    public var transfer: FileTransferPayload
+
+    public init(transfer: FileTransferPayload) {
+        self.transfer = transfer
+    }
+}
+
+/// Clipboard variant of `ShareTransfer` (image or file copied on the desktop).
+public struct ClipboardTransfer: Codable, Sendable, Equatable {
+    public var transfer: FileTransferPayload
+
+    public init(transfer: FileTransferPayload) {
+        self.transfer = transfer
+    }
+}
+
 public struct SftpServerInfo: Codable, Sendable, Equatable {
     public var username: String
     public var password: String

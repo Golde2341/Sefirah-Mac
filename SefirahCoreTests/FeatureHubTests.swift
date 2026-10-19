@@ -58,6 +58,42 @@ final class FeatureHubTests: XCTestCase {
         XCTAssertEqual(hub.liveState(deviceId: "phone").lastTransfer?.serverInfo.port, 5152)
         XCTAssertEqual(transferResult.effects, [.receiveFiles(transfer)])
 
+        let shareTransfer = ShareTransfer(
+            transfer: FileTransferPayload(
+                files: [FileMetadata(fileName: "note.txt", mimeType: "text/plain", fileSize: 3)],
+                serverInfo: ServerInfo(port: 5154)
+            )
+        )
+        let shareResult = try hub.handle(deviceId: "phone", .shareTransfer(shareTransfer))
+        XCTAssertEqual(
+            shareResult.effects,
+            [.receiveFiles(
+                FileTransferInfo(
+                    files: shareTransfer.transfer.files,
+                    serverInfo: shareTransfer.transfer.serverInfo,
+                    isClipboard: false
+                )
+            )]
+        )
+
+        let clipboardTransfer = ClipboardTransfer(
+            transfer: FileTransferPayload(
+                files: [FileMetadata(fileName: "clip.png", mimeType: "image/png", fileSize: 4)],
+                serverInfo: ServerInfo(port: 5155)
+            )
+        )
+        let clipboardShareResult = try hub.handle(deviceId: "phone", .clipboardTransfer(clipboardTransfer))
+        XCTAssertEqual(
+            clipboardShareResult.effects,
+            [.receiveFiles(
+                FileTransferInfo(
+                    files: clipboardTransfer.transfer.files,
+                    serverInfo: clipboardTransfer.transfer.serverInfo,
+                    isClipboard: true
+                )
+            )]
+        )
+
         _ = try hub.handle(
             deviceId: "phone",
             .callInfo(CallInfo(callState: .ringing, phoneNumber: "+1555"))

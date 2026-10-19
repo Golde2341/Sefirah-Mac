@@ -11,9 +11,6 @@
         }
       }
     },
-    "%@ wallpaper" : {
-
-    },
     "%@ wants to pair with this Mac. Confirm the code matches on both devices." : {
 
     },
@@ -149,6 +146,9 @@
     "Bit rate (e.g. 128K)" : {
 
     },
+    "Browse the phone's files" : {
+
+    },
     "Buffer: %lld ms" : {
 
     },
@@ -189,9 +189,6 @@
 
     },
     "Clear notifications on the phone and in the mirrored feed" : {
-
-    },
-    "Clipboard" : {
 
     },
     "Clipboard from phone: %@" : {
@@ -278,13 +275,10 @@
     "Display id (0 = default)" : {
 
     },
-    "DND" : {
-
-    },
-    "DND On" : {
-
-    },
     "Do Not Disturb" : {
+
+    },
+    "Do Not Disturb is on" : {
 
     },
     "Done" : {
@@ -297,12 +291,6 @@
 
     },
     "Fall back to external scrcpy when the native mirror fails" : {
-
-    },
-    "Files" : {
-
-    },
-    "Find" : {
 
     },
     "Find phone" : {
@@ -578,9 +566,6 @@
     "Phone only (no audio stream)" : {
 
     },
-    "Phone preview" : {
-
-    },
     "Phone screen is off" : {
 
     },
@@ -659,6 +644,9 @@
     "Ring" : {
 
     },
+    "Ring the phone" : {
+
+    },
     "Ringer" : {
 
     },
@@ -722,6 +710,12 @@
     "Send clipboard" : {
 
     },
+    "Send files to the phone" : {
+
+    },
+    "Send the Mac clipboard to the phone" : {
+
+    },
     "Session" : {
 
     },
@@ -755,6 +749,9 @@
     "Start Mirroring" : {
 
     },
+    "Starting the mirror…" : {
+
+    },
     "Startup" : {
 
     },
@@ -762,9 +759,6 @@
 
     },
     "Stop All Mirrors" : {
-
-    },
-    "Stop every mirror session of this phone" : {
 
     },
     "Stop find phone" : {
@@ -779,7 +773,7 @@
     "Stop playing phone audio on this Mac" : {
 
     },
-    "Stop sound" : {
+    "Stop ringing the phone" : {
 
     },
     "Sync clipboard automatically" : {
@@ -816,6 +810,9 @@
 
     },
     "Turn off the phone screen while projecting an app" : {
+
+    },
+    "Turn on Do Not Disturb" : {
 
     },
     "Turn phone screen off while mirroring" : {

@@ -6,8 +6,8 @@ import XCTest
 /// enums, integer `AudioStreamType`, nulls included the way C# writes them.
 final class SocketMessageGoldenTests: XCTestCase {
     func testEveryDiscriminatorIsRegistered() {
-        XCTAssertEqual(SocketMessage.allTypeNames.count, 35)
-        XCTAssertEqual(Set(SocketMessage.allTypeNames).count, 35)
+        XCTAssertEqual(SocketMessage.allTypeNames.count, 37)
+        XCTAssertEqual(Set(SocketMessage.allTypeNames).count, 37)
     }
 
     func testUnknownTypeThrows() {
@@ -260,6 +260,34 @@ final class SocketMessageGoldenTests: XCTestCase {
         )
     }
 
+    func testShareTransfer() throws {
+        try assertGolden(
+            #"{"type":"ShareTransfer","transfer":{"files":[{"fileName":"a.png","mimeType":"image/png","fileSize":123}],"serverInfo":{"port":5152}}}"#,
+            equals: .shareTransfer(
+                ShareTransfer(
+                    transfer: FileTransferPayload(
+                        files: [FileMetadata(fileName: "a.png", mimeType: "image/png", fileSize: 123)],
+                        serverInfo: ServerInfo(port: 5152)
+                    )
+                )
+            )
+        )
+    }
+
+    func testClipboardTransfer() throws {
+        try assertGolden(
+            #"{"type":"ClipboardTransfer","transfer":{"files":[{"fileName":"clip.png","mimeType":"image/png","fileSize":4}],"serverInfo":{"port":5153}}}"#,
+            equals: .clipboardTransfer(
+                ClipboardTransfer(
+                    transfer: FileTransferPayload(
+                        files: [FileMetadata(fileName: "clip.png", mimeType: "image/png", fileSize: 4)],
+                        serverInfo: ServerInfo(port: 5153)
+                    )
+                )
+            )
+        )
+    }
+
     func testClipboardInfo() throws {
         try assertGolden(
             #"{"type":"ClipboardInfo","clipboardType":"text/plain","content":"hello"}"#,
@@ -394,6 +422,22 @@ final class SocketMessageGoldenTests: XCTestCase {
             .notificationReply(NotificationReply(notificationKey: "k", replyResultKey: "r", replyText: "t")),
             .fileTransferInfo(
                 FileTransferInfo(files: [FileMetadata(fileName: "f", mimeType: "text/plain", fileSize: 1)], serverInfo: ServerInfo(port: 5153))
+            ),
+            .shareTransfer(
+                ShareTransfer(
+                    transfer: FileTransferPayload(
+                        files: [FileMetadata(fileName: "f", mimeType: "text/plain", fileSize: 1)],
+                        serverInfo: ServerInfo(port: 5152)
+                    )
+                )
+            ),
+            .clipboardTransfer(
+                ClipboardTransfer(
+                    transfer: FileTransferPayload(
+                        files: [FileMetadata(fileName: "f", mimeType: "image/png", fileSize: 2)],
+                        serverInfo: ServerInfo(port: 5152)
+                    )
+                )
             ),
             .sftpServerInfo(SftpServerInfo(username: "u", password: "p", port: 22)),
             .clipboardInfo(ClipboardInfo(clipboardType: "text/plain", content: "c")),

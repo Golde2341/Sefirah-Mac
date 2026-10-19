@@ -18,6 +18,7 @@ public enum SocketMessage: Sendable, Equatable {
     case callLogInfo(CallLogInfo)
     case clearNotifications
     case clipboardInfo(ClipboardInfo)
+    case clipboardTransfer(ClipboardTransfer)
     case contactInfo(ContactInfo)
     case conversationInfo(ConversationInfo)
     case deviceInfo(DeviceInfo)
@@ -35,6 +36,7 @@ public enum SocketMessage: Sendable, Equatable {
     case requestWorkerLaunch(RequestWorkerLaunch)
     case ringerModeState(RingerModeState)
     case sftpServerInfo(SftpServerInfo)
+    case shareTransfer(ShareTransfer)
     case textMessage(TextMessage)
     case threadRequest(ThreadRequest)
     case udpBroadcast(UdpBroadcast)
@@ -57,6 +59,7 @@ public enum SocketMessage: Sendable, Equatable {
         case .callLogInfo: "CallLogInfo"
         case .clearNotifications: "ClearNotifications"
         case .clipboardInfo: "ClipboardInfo"
+        case .clipboardTransfer: "ClipboardTransfer"
         case .contactInfo: "ContactInfo"
         case .conversationInfo: "ConversationInfo"
         case .deviceInfo: "DeviceInfo"
@@ -74,6 +77,7 @@ public enum SocketMessage: Sendable, Equatable {
         case .requestWorkerLaunch: "RequestWorkerLaunch"
         case .ringerModeState: "RingerModeState"
         case .sftpServerInfo: "SftpServerInfo"
+        case .shareTransfer: "ShareTransfer"
         case .textMessage: "TextMessage"
         case .threadRequest: "ThreadRequest"
         case .udpBroadcast: "UdpBroadcast"
@@ -96,6 +100,7 @@ public enum SocketMessage: Sendable, Equatable {
         "CallLogInfo",
         "ClearNotifications",
         "ClipboardInfo",
+        "ClipboardTransfer",
         "ContactInfo",
         "ConversationInfo",
         "DeviceInfo",
@@ -113,6 +118,7 @@ public enum SocketMessage: Sendable, Equatable {
         "RequestWorkerLaunch",
         "RingerModeState",
         "SftpServerInfo",
+        "ShareTransfer",
         "TextMessage",
         "ThreadRequest",
         "UdpBroadcast",

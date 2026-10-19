@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 import Foundation
 import OSLog
 import SefirahCore
@@ -65,6 +66,8 @@ final class AppModel: PairingDecider {
     /// Phone wallpapers last reported by the companion, keyed by device id. Shown by the device
     /// rail's phone preview.
     var deviceWallpapers: [String: NSImage] = [:]
+    /// Static status shown under the rail actions while a send-to-phone is in flight or just finished.
+    var fileTransferStatus: String?
     var selectedDeviceID: String?
     var pendingPairing: DiscoveredPeer?
     var notifications: [NotificationSnapshot] = []
@@ -1781,6 +1784,71 @@ final class AppModel: PairingDecider {
                 }
             }
         }
+    }
+
+    /// Sends the chosen files to the selected phone: the Mac runs a short-lived TLS server and
+    /// announces it with a `ShareTransfer` message, then the phone pulls the files from it.
+    func sendFiles(_ urls: [URL]) {
+        guard let device = selectedDevice, !urls.isEmpty else { return }
+        let entries: [(metadata: FileMetadata, url: URL)] = urls.compactMap { url in
+            guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize else { return nil }
+            let metadata = FileMetadata(
+                fileName: url.lastPathComponent,
+                mimeType: Self.mimeType(for: url),
+                fileSize: Int64(size)
+            )
+            return (metadata, url)
+        }
+        guard !entries.isEmpty else { return }
+
+        let files = entries.map(\.metadata)
+        let fileURLs = entries.map(\.url)
+        let count = files.count
+        fileTransferStatus = count == 1
+            ? "Sending \(files[0].fileName)…"
+            : "Sending \(count) files…"
+        let localIdentity = self.identity
+        let cert = device.certificateDER
+        let deviceID = device.id
+        let session = self.session
+        let hub = self.hub
+        Task.detached { [weak self] in
+            do {
+                try await FileTransferSender.send(
+                    files: files,
+                    urls: fileURLs,
+                    identity: localIdentity,
+                    pinnedCertificateDER: cert
+                ) { port in
+                    Task { @MainActor in
+                        session?.send(to: deviceID, hub.shareTransfer(port: port, files: files))
+                    }
+                }
+                await MainActor.run {
+                    guard let self else { return }
+                    self.fileTransferStatus = count == 1 ? "Sent \(files[0].fileName)" : "Sent \(count) files"
+                }
+                try? await Task.sleep(for: .seconds(4))
+                await MainActor.run {
+                    guard let self, self.fileTransferStatus?.hasPrefix("Sent ") == true else { return }
+                    self.fileTransferStatus = nil
+                }
+            } catch {
+                await MainActor.run {
+                    guard let self else { return }
+                    self.fileTransferStatus = "Couldn't send files: \(error.localizedDescription)"
+                }
+                try? await Task.sleep(for: .seconds(8))
+                await MainActor.run {
+                    guard let self, self.fileTransferStatus?.hasPrefix("Couldn't ") == true else { return }
+                    self.fileTransferStatus = nil
+                }
+            }
+        }
+    }
+
+    private static func mimeType(for url: URL) -> String {
+        UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
     }
 
 }

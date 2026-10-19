@@ -124,6 +124,22 @@ public final class FeatureHub: @unchecked Sendable {
         case .fileTransferInfo(let info):
             state.lastTransfer = info
             effects.append(.receiveFiles(info))
+        case .shareTransfer(let message):
+            let info = FileTransferInfo(
+                files: message.transfer.files,
+                serverInfo: message.transfer.serverInfo,
+                isClipboard: false
+            )
+            state.lastTransfer = info
+            effects.append(.receiveFiles(info))
+        case .clipboardTransfer(let message):
+            let info = FileTransferInfo(
+                files: message.transfer.files,
+                serverInfo: message.transfer.serverInfo,
+                isClipboard: true
+            )
+            state.lastTransfer = info
+            effects.append(.receiveFiles(info))
         case .conversationInfo(let info):
             try persistConversation(deviceId: deviceId, info)
         case .textMessage(let text):
@@ -236,6 +252,15 @@ public final class FeatureHub: @unchecked Sendable {
 
     public func clipboard(type: String, content: String) -> SocketMessage {
         .clipboardInfo(ClipboardInfo(clipboardType: type, content: content))
+    }
+
+    /// Outbound `ShareTransfer`: the Mac hosts the files on `port` and the phone pulls them.
+    public func shareTransfer(port: Int, files: [FileMetadata]) -> SocketMessage {
+        .shareTransfer(
+            ShareTransfer(
+                transfer: FileTransferPayload(files: files, serverInfo: ServerInfo(port: port))
+            )
+        )
     }
 
     public func sendSms(threadId: Int64, addresses: [String], body: String, subscriptionId: Int = 0) -> SocketMessage {

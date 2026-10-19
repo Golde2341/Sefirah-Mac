@@ -113,6 +113,7 @@ public enum FileReceiveStep: Equatable, Sendable {
 public enum FileTransferError: Error, Equatable {
     case sizeMismatch(expected: Int64, actual: Int64)
     case unexpectedEOF
+    case invalidHandshake
 }
 
 /// Duplex byte pipe used by the file-transfer data plane (`start` / raw bytes / `complete`).
@@ -150,5 +151,49 @@ public enum FileTransferSession {
             }
         }
         return engine.completedURLs
+    }
+
+    /// Sender side of a transfer (Mac → phone `ShareTransfer`): for each file, wait for the peer's
+    /// `start`, stream exactly `fileSize` bytes from `urls`, then wait for `complete`.
+    public static func send(
+        files: [FileMetadata],
+        urls: [URL],
+        io: FileTransferIO
+    ) async throws {
+        guard files.count == urls.count else { throw FileTransferError.invalidHandshake }
+        for (metadata, url) in zip(files, urls) {
+            try await waitForControl(.start, io: io)
+            let handle = try FileHandle(forReadingFrom: url)
+            defer { try? handle.close() }
+            var sent: Int64 = 0
+            while sent < metadata.fileSize {
+                let toRead = min(FileTransferFraming.chunkSize, Int(metadata.fileSize - sent))
+                guard let chunk = try handle.read(upToCount: toRead), !chunk.isEmpty else {
+                    throw FileTransferError.unexpectedEOF
+                }
+                try await io.write(chunk)
+                sent += Int64(chunk.count)
+            }
+            try await waitForControl(.complete, io: io)
+        }
+    }
+
+    /// Reads control words one byte at a time: the phone writes `start` / `complete` without a
+    /// trailing newline, so a line-based read would block forever.
+    private static func waitForControl(
+        _ expected: FileTransferFraming.Control,
+        io: FileTransferIO
+    ) async throws {
+        var buffer = Data()
+        while buffer.count < 64 {
+            let chunk = try await io.read(maxLength: 1)
+            if chunk.isEmpty { throw FileTransferError.unexpectedEOF }
+            buffer.append(chunk)
+            if let control = FileTransferFraming.parseControl(buffer) {
+                guard control == expected else { throw FileTransferError.invalidHandshake }
+                return
+            }
+        }
+        throw FileTransferError.invalidHandshake
     }
 }

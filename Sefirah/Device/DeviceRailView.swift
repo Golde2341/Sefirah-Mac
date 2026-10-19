@@ -9,6 +9,7 @@ struct DeviceRailView: View {
     @State private var wirelessPairing: WirelessPairingModel?
     @State private var showAdbInfo = false
     @State private var isCheckingAdb = false
+    @State private var isPreviewHovered = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -23,7 +24,16 @@ struct DeviceRailView: View {
                             Text("Ring").tag(2)
                         }
                         .pickerStyle(.segmented)
+                        .labelsHidden()
                         .disabled(!device.isConnected)
+                        deviceActions(device)
+                        if let status = model.fileTransferStatus {
+                            Text(status)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -44,31 +54,6 @@ struct DeviceRailView: View {
                         ) { model.setAudioLevel(type, level: $0) }
                     }
                 }
-
-                HStack {
-                    if model.isMirroring(device.id) {
-                        Button("Stop") { model.stopMirrors(deviceId: device.id) }
-                            .help("Stop every mirror session of this phone")
-                    } else if model.isMirrorPending(device.id) {
-                        Button("Mirror") {}
-                            .disabled(true)
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Button("Mirror") { model.startMirror() }
-                            .disabled(!model.canMirror)
-                            .help(model.canMirror ? "Mirror the phone screen" : "Bundled adb/scrcpy is missing. Reinstall Sefirah or set a custom scrcpy path in Settings.")
-                    }
-                    Button(model.live.soundPlaying ? "Stop sound" : "Find") {
-                        model.toggleFindPhone()
-                    }
-                    Button(model.live.dndEnabled == true ? "DND On" : "DND") { model.toggleDnd() }
-                }
-                .controlSize(.small)
-                HStack {
-                    Button("Files") { model.openSftp() }
-                    Button("Clipboard") { model.sendClipboard() }
-                }
-                .controlSize(.small)
 
                 ForEach(model.visiblePlayback, id: \.source) { session in
                     mediaCard(session, connected: device.isConnected)
@@ -101,38 +86,151 @@ struct DeviceRailView: View {
         )
     }
 
-    /// Small phone frame showing the wallpaper the companion last reported, with the blue glow
-    /// placeholder from the legacy desktop app until one arrives.
+    /// The phone preview doubles as the mirror button: click to mirror (or to stop mirroring).
     private func phonePreview(_ device: ConnectedPeer) -> some View {
-        ZStack {
-            if let wallpaper = model.deviceWallpapers[device.id] {
-                Image(nsImage: wallpaper)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.0, green: 0.44, blue: 1.0),
-                        Color(red: 0.18, green: 0.56, blue: 1.0),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+        Button {
+            if model.isMirroring(device.id) {
+                model.stopMirrors(deviceId: device.id)
+            } else if !model.isMirrorPending(device.id) {
+                model.startMirror()
+            }
+        } label: {
+            ZStack {
+                if let wallpaper = model.deviceWallpapers[device.id] {
+                    Image(nsImage: wallpaper)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.0, green: 0.44, blue: 1.0),
+                            Color(red: 0.18, green: 0.56, blue: 1.0),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+                // Resting state sits dimmed; hovering brightens it and reveals the cast glyph.
+                Color.black.opacity(isPreviewHovered ? 0.15 : 0.35)
+                if model.isMirrorPending(device.id) {
+                    ZStack {
+                        Color.black.opacity(0.45)
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                } else if isPreviewHovered, previewInteractable(device) {
+                    Image(systemName: "airplayvideo")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.55), radius: 3)
+                }
+            }
+            .frame(width: 54, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .padding(3)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(.quaternary.opacity(0.6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(.primary.opacity(0.3), lineWidth: 1.5)
+            )
+            .animation(.easeInOut(duration: 0.12), value: isPreviewHovered)
+        }
+        .buttonStyle(.plain)
+        .disabled(
+            model.isMirrorPending(device.id)
+                || (!model.isMirroring(device.id) && !model.canMirror)
+        )
+        .onHover { isPreviewHovered = $0 }
+        .help(previewHelp(device))
+        .accessibilityLabel(model.isMirroring(device.id) ? "Stop mirroring" : "Mirror the phone screen")
+    }
+
+    private func previewInteractable(_ device: ConnectedPeer) -> Bool {
+        model.isMirroring(device.id) || model.canMirror || model.isMirrorPending(device.id)
+    }
+
+    private func previewHelp(_ device: ConnectedPeer) -> LocalizedStringKey {
+        if model.isMirroring(device.id) { return "Stop mirroring" }
+        if model.isMirrorPending(device.id) { return "Starting the mirror…" }
+        if model.canMirror { return "Mirror the phone screen" }
+        return "Bundled adb/scrcpy is missing. Reinstall Sefirah or set a custom scrcpy path in Settings."
+    }
+
+    /// Icon-only phone actions under the ringer control: find, DND, files and clipboard (the
+    /// phone preview is the mirror button).
+    private func deviceActions(_ device: ConnectedPeer) -> some View {
+        HStack(spacing: 8) {
+            actionButton(
+                systemImage: model.live.soundPlaying ? "speaker.slash.fill" : "iphone.radiowaves.left.and.right",
+                help: model.live.soundPlaying ? "Stop ringing the phone" : "Ring the phone"
+            ) {
+                model.toggleFindPhone()
+            }
+
+            actionButton(
+                systemImage: model.live.dndEnabled == true ? "minus.circle.fill" : "minus.circle",
+                help: model.live.dndEnabled == true ? "Do Not Disturb is on" : "Turn on Do Not Disturb",
+                tint: model.live.dndEnabled == true ? Color.accentColor : Color.primary
+            ) {
+                model.toggleDnd()
+            }
+
+            actionButton(systemImage: "folder", help: "Browse the phone's files") {
+                model.openSftp()
+            }
+
+            actionButton(systemImage: "doc.on.clipboard", help: "Send the Mac clipboard to the phone") {
+                model.sendClipboard()
+            }
+
+            actionButton(
+                systemImage: "square.and.arrow.up",
+                help: "Send files to the phone",
+                isEnabled: device.isConnected
+            ) {
+                chooseFilesToSend()
             }
         }
-        .frame(width: 54, height: 100)
-        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-        .padding(3)
+    }
+
+    /// Files-only open panel; picks one or more files and hands them to the model to send.
+    private func chooseFilesToSend() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.message = "Choose files to send to the phone"
+        panel.prompt = "Send"
+        if panel.runModal() == .OK, !panel.urls.isEmpty {
+            model.sendFiles(panel.urls)
+        }
+    }
+
+    /// Compact rectangular icon button used by the phone action row.
+    private func actionButton(
+        systemImage: String,
+        help: LocalizedStringKey,
+        tint: Color = .primary,
+        isEnabled: Bool = true,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(tint)
+                .frame(width: 34, height: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.quaternary.opacity(0.6))
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(.quaternary)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(.primary.opacity(0.3), lineWidth: 1.5)
-        )
-        .help("\(device.name) wallpaper")
-        .accessibilityLabel("Phone preview")
+        .help(help)
     }
 
     private func deviceCard(_ device: ConnectedPeer) -> some View {
