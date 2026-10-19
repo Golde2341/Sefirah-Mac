@@ -110,8 +110,8 @@ struct DeviceRailView: View {
                         endPoint: .bottom
                     )
                 }
-                // Resting state sits dimmed; hovering brightens it and reveals the cast glyph.
-                Color.black.opacity(isPreviewHovered ? 0.15 : 0.35)
+                // Resting state sits undimmed; hovering dims it and reveals the cast glyph.
+                Color.black.opacity(isPreviewHovered ? 0.35 : 0.0)
                 if model.isMirrorPending(device.id) {
                     ZStack {
                         Color.black.opacity(0.45)
