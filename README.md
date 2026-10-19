@@ -20,7 +20,7 @@ The original C#/Uno Windows & Linux sources live in [`legacy/`](legacy/) as a pr
 - **Clipboard sharing**: real-time Mac → phone sync, automatic phone → Mac application (text, images and files).
 - **Notifications**: mirror Android notifications to the Mac — per-app enable/disable, reply and action buttons, tap to open the matching app and mirror it on the Mac,
 - **Media**: control the phone's playback from the Mac. A glass mini-player in the menu bar.
-- **Files**: receive files sent from the phone's share sheet into a folder you choose, and open the phone's storage in Finder over SFTP.
+- **Files**: receive files sent from the phone's share sheet into a folder you choose, send Mac files to the phone, and mount the phone's storage as a Finder volume.
 - **SMS**: view conversations, read and send texts from the Messages tab.
 - **Calls**: call log and an incoming-call overlay with caller details.
 - **Apps**: the phone's launcher apps. Hidden apps are kept behind Touch ID / login-password authentication.
@@ -84,7 +84,12 @@ Sefirah lives in the menu bar. On first launch it walks you through pairing.
 ### Files & storage
 
 - Send a file from Android's share sheet and pick Sefirah — the file is saved to the folder set in **Settings → General → Received files**.
-- **Files** in the device rail opens the phone's storage in Finder over `sftp://`.
+- Use the **upload** button in the device rail to send files from the Mac to the phone.
+- The **folder** button mounts the phone's storage as a Finder volume (for example `/Volumes/Pixel 8`), backed by a bundled rclone bridge that speaks SFTP to the phone and WebDAV to Finder — no kernel extension or installer. macOS asks once for permission to control Finder. The button turns into an eject button while mounted; quitting Sefirah unmounts the volume.
+- Several phones can be mounted at the same time: each one gets its own bridge, port, cache and sidebar entry, and mounting or ejecting one leaves the others alone.
+- Mounted phones are pinned into Finder's sidebar under **Locations**, so the storage stays one click away.
+- The network volume is published over Bonjour as **Sefirah.local**, so Finder's sidebar shows that name instead of a bare IP address. Turning on **Settings → General → “Call the mounted phone “Sefirah” in Finder”** adds a one-line `127.0.0.1 Sefirah` alias to `/etc/hosts` (one administrator approval) and shortens the sidebar entry to just **Sefirah**.
+- Files written through the mount arrive on the phone as hidden `._*` companion files next to them (macOS metadata), which can be deleted safely.
 
 ### SMS & calls
 

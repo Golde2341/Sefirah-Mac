@@ -43,3 +43,23 @@ final class BundledToolsTests: XCTestCase {
         ))
     }
 }
+
+final class MountToolsTests: XCTestCase {
+    private let macos = URL(fileURLWithPath: "/App.app/Contents/MacOS", isDirectory: true)
+
+    func testLocatesRcloneInMacOS() {
+        let url = MountTools.locateRclone(
+            auxiliaryExecutable: { macos.appendingPathComponent($0) },
+            exists: { _ in true }
+        )
+        XCTAssertEqual(url?.path, "/App.app/Contents/MacOS/rclone")
+    }
+
+    func testMissingRcloneIsNil() {
+        XCTAssertNil(MountTools.locateRclone(auxiliaryExecutable: { _ in nil }, exists: { _ in true }))
+        XCTAssertNil(MountTools.locateRclone(
+            auxiliaryExecutable: { macos.appendingPathComponent($0) },
+            exists: { _ in false }
+        ))
+    }
+}

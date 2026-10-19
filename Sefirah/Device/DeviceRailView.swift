@@ -178,9 +178,7 @@ struct DeviceRailView: View {
                 model.toggleDnd()
             }
 
-            actionButton(systemImage: "folder", help: "Browse the phone's files") {
-                model.openSftp()
-            }
+            mountButton(device)
 
             actionButton(systemImage: "doc.on.clipboard", help: "Send the Mac clipboard to the phone") {
                 model.sendClipboard()
@@ -192,6 +190,39 @@ struct DeviceRailView: View {
                 isEnabled: device.isConnected
             ) {
                 chooseFilesToSend()
+            }
+        }
+    }
+
+    /// Folder button for the action row: mounts this phone's storage in Finder, becomes an eject
+    /// button while its volume is mounted, and a spinner while its bridge starts or stops. Every
+    /// phone keeps its own mount, so mounting another phone doesn't affect this one.
+    @ViewBuilder
+    private func mountButton(_ device: ConnectedPeer) -> some View {
+        let session = model.phoneMount.session(for: device.id)
+        if session.isBusy {
+            ProgressView()
+                .controlSize(.small)
+                .frame(width: 34, height: 24)
+                .background(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(.quaternary)
+                )
+        } else if session.volume != nil {
+            actionButton(
+                systemImage: "eject",
+                help: "Unmount the phone's files",
+                tint: Color.accentColor
+            ) {
+                model.togglePhoneMount(for: device)
+            }
+        } else {
+            actionButton(
+                systemImage: "folder",
+                help: "Mount the phone's files in Finder",
+                isEnabled: device.isConnected
+            ) {
+                model.togglePhoneMount(for: device)
             }
         }
     }

@@ -7,17 +7,21 @@ APP="${1:?usage: verify-bundle.sh <Sefirah.app> [--debug]}"
 DEBUG="${2:-}"
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
-for f in Contents/MacOS/Sefirah Contents/MacOS/scrcpy Contents/MacOS/adb \
+for f in Contents/MacOS/Sefirah Contents/MacOS/scrcpy Contents/MacOS/adb Contents/MacOS/rclone \
          Contents/Resources/scrcpy/scrcpy-server Contents/Resources/scrcpy/LICENSE \
-         Contents/Resources/scrcpy/NOTICES.md Contents/Resources/scrcpy/VERSION; do
+         Contents/Resources/scrcpy/NOTICES.md Contents/Resources/scrcpy/VERSION \
+         Contents/Resources/rclone/LICENSE Contents/Resources/rclone/VERSION; do
   [[ -e "$APP/$f" ]] || fail "missing $f"
 done
 
 codesign --verify --deep --strict --verbose=2 "$APP" || fail "codesign --verify failed"
-lipo -info "$APP/Contents/MacOS/scrcpy" | grep -q 'x86_64 arm64' || fail "scrcpy is not universal"
+for tool in scrcpy rclone; do
+  lipo -info "$APP/Contents/MacOS/$tool" | grep -q 'x86_64 arm64' || fail "$tool is not universal"
+done
 "$APP/Contents/MacOS/scrcpy" --version | head -1
+"$APP/Contents/MacOS/rclone" version | head -1
 
-for bin in scrcpy adb; do
+for bin in scrcpy adb rclone; do
   info="$(codesign -dvv "$APP/Contents/MacOS/$bin" 2>&1)"
   if [[ "$DEBUG" != "--debug" ]]; then
     grep -q 'flags=0x10000(runtime)' <<<"$info" || fail "$bin: hardened runtime not set"

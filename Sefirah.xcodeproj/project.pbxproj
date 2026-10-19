@@ -62,6 +62,12 @@
 		5ECC6CA852EBDB2FD74FB8CF /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07CEB123EADD72C68797D41 /* Constants.swift */; };
 		5EDC809558DFFFFD3634681C /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8D1855F2398A0297975C310 /* AppDatabase.swift */; };
 		5FCCAA59778BC7B420CC0065 /* SftpBrowse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C66A615B3479E8A8B7EF3B6 /* SftpBrowse.swift */; };
+		AE7A11000000000000000001 /* PhoneMount.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7A11000000000000000002 /* PhoneMount.swift */; };
+		AE7A11000000000000000003 /* PhoneMountController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7A11000000000000000004 /* PhoneMountController.swift */; };
+		AE7A11000000000000000005 /* PhoneMountTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7A11000000000000000006 /* PhoneMountTests.swift */; };
+		AE7A11000000000000000008 /* rclone in CopyFiles */ = {isa = PBXBuildFile; fileRef = AE7A11000000000000000007 /* rclone */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		AE7A1100000000000000000B /* LICENSE in CopyFiles */ = {isa = PBXBuildFile; fileRef = AE7A1100000000000000000A /* LICENSE */; };
+		AE7A1100000000000000000D /* VERSION in CopyFiles */ = {isa = PBXBuildFile; fileRef = AE7A1100000000000000000C /* VERSION */; };
 		60CB64318C5765CF466CBD70 /* adb in CopyFiles */ = {isa = PBXBuildFile; fileRef = BED28C350E4780B62E27A666 /* adb */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		6202A2E420E817CB002646F0 /* DeviceRailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 958E704F393C58144C475E60 /* DeviceRailView.swift */; };
 		6270D2F63EFD306A1680EFEC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91B746078E79B25B2B20679F /* Assets.xcassets */; };
@@ -208,6 +214,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AE7A1100000000000000000E /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = rclone;
+			dstSubfolderSpec = 7;
+			files = (
+				AE7A1100000000000000000B /* LICENSE in CopyFiles */,
+				AE7A1100000000000000000D /* VERSION in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		98BCD3F8C33D28E07E78D623 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -215,6 +232,7 @@
 			dstSubfolderSpec = 6;
 			files = (
 				60CB64318C5765CF466CBD70 /* adb in CopyFiles */,
+				AE7A11000000000000000008 /* rclone in CopyFiles */,
 				4C3162646E29F94FCBAE43E6 /* scrcpy in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -239,6 +257,12 @@
 		0B147504FB00E5694F00BCD8 /* MirrorSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorSettingsView.swift; sourceTree = "<group>"; };
 		0C3F99E3C615407BE4E92115 /* ServerLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerLauncher.swift; sourceTree = "<group>"; };
 		0C66A615B3479E8A8B7EF3B6 /* SftpBrowse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SftpBrowse.swift; sourceTree = "<group>"; };
+		AE7A11000000000000000002 /* PhoneMount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneMount.swift; sourceTree = "<group>"; };
+		AE7A11000000000000000004 /* PhoneMountController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneMountController.swift; sourceTree = "<group>"; };
+		AE7A11000000000000000006 /* PhoneMountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneMountTests.swift; sourceTree = "<group>"; };
+		AE7A11000000000000000007 /* rclone */ = {isa = PBXFileReference; path = rclone; sourceTree = "<group>"; };
+		AE7A1100000000000000000A /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
+		AE7A1100000000000000000C /* VERSION */ = {isa = PBXFileReference; path = VERSION; sourceTree = "<group>"; };
 		0DC4EB642815C91ADAC6BA21 /* BundledTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundledTools.swift; sourceTree = "<group>"; };
 		11461FD9739883D5EF916FE1 /* ActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionRunner.swift; sourceTree = "<group>"; };
 		12DA07C789BBEF7DDD91A9BE /* PointerMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointerMapper.swift; sourceTree = "<group>"; };
@@ -438,6 +462,7 @@
 				3E11BC7AF9F7381E2DC66BA2 /* BundledToolsTests.swift */,
 				1FA41226ECD54AE23C644827 /* CertificateStashTests.swift */,
 				95C7EC5387856B495333212A /* ClipboardApplyTests.swift */,
+				AE7A11000000000000000006 /* PhoneMountTests.swift */,
 				A9316A95DB3030AF26FADE93 /* CompanionHelpersTests.swift */,
 				E1114E47357A809096A3251C /* FeatureHubTests.swift */,
 				AB12CD34EF56010203040512 /* NotificationAttachmentImageTests.swift */,
@@ -585,6 +610,8 @@
 				C27441175CE91368A1221065 /* FileTransferFraming.swift */,
 				7DBE79967FD928B0AFFB58E2 /* ScrcpyArguments.swift */,
 				0C66A615B3479E8A8B7EF3B6 /* SftpBrowse.swift */,
+				AE7A11000000000000000002 /* PhoneMount.swift */,
+				AE7A11000000000000000004 /* PhoneMountController.swift */,
 				55A412B42AA2B40A2B5BE8EB /* Mirroring */,
 			);
 			path = Features;
@@ -609,6 +636,17 @@
 				E61BFB063E1E3A6B1B877CC3 /* AppsView.swift */,
 			);
 			path = Apps;
+			sourceTree = "<group>";
+		};
+		AE7A11000000000000000009 /* rclone */ = {
+			isa = PBXGroup;
+			children = (
+				AE7A1100000000000000000A /* LICENSE */,
+				AE7A11000000000000000007 /* rclone */,
+				AE7A1100000000000000000C /* VERSION */,
+			);
+			name = rclone;
+			path = Vendor/rclone;
 			sourceTree = "<group>";
 		};
 		9C81BA9098DCA1C9A4932F7D /* scrcpy */ = {
@@ -697,6 +735,7 @@
 		B7AD0DF5726836BD7A67E3A8 = {
 			isa = PBXGroup;
 			children = (
+				AE7A11000000000000000009 /* rclone */,
 				9C81BA9098DCA1C9A4932F7D /* scrcpy */,
 				C374C2574CC0301291132FA5 /* Sefirah */,
 				B1BA8116D83845F118E0E8F6 /* SefirahCore */,
@@ -826,10 +865,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4B5D1988C10F6C70B043AEED /* Build configuration list for PBXNativeTarget "Sefirah" */;
 			buildPhases = (
-				565D11BB981E5321601D3401 /* Check vendored scrcpy */,
+				565D11BB981E5321601D3401 /* Check vendored tools */,
 				EC242EC43BD3736F822505E9 /* Sources */,
 				7B68B4A53DD7B5FA6438CE7D /* Resources */,
 				489C4FF9117A4EC16F2BCC97 /* CopyFiles */,
+				AE7A1100000000000000000E /* CopyFiles */,
 				98BCD3F8C33D28E07E78D623 /* CopyFiles */,
 				BAFA972F625BF76B4A6E4823 /* Frameworks */,
 				14FF16A3BB821EFCC4C1F59C /* Embed Frameworks */,
@@ -994,7 +1034,7 @@
 			shellPath = /bin/bash;
 			shellScript = "/bin/bash \"$SRCROOT/scripts/fullbleed-legacy-icon.sh\"";
 		};
-		565D11BB981E5321601D3401 /* Check vendored scrcpy */ = {
+		565D11BB981E5321601D3401 /* Check vendored tools */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -1004,14 +1044,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Check vendored scrcpy";
+			name = "Check vendored tools";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "source \"$SRCROOT/scripts/scrcpy.lock\"\nV=\"$SRCROOT/Vendor/scrcpy\"\nif [ ! -x \"$V/scrcpy\" ] || [ ! -x \"$V/adb\" ] || [ ! -f \"$V/scrcpy-server\" ]; then\n  echo \"error: Vendor/scrcpy is missing — run scripts/fetch-scrcpy.sh\" >&2; exit 1\nfi\nHAVE=\"$(cat \"$V/VERSION\" 2>/dev/null || echo none)\"\nif [ \"$HAVE\" != \"$SCRCPY_VERSION\" ]; then\n  echo \"error: Vendor/scrcpy is v$HAVE but scripts/scrcpy.lock pins v$SCRCPY_VERSION — run scripts/fetch-scrcpy.sh\" >&2; exit 1\nfi\n";
+			shellScript = "source \"$SRCROOT/scripts/scrcpy.lock\"\nsource \"$SRCROOT/scripts/rclone.lock\"\nV=\"$SRCROOT/Vendor/scrcpy\"\nif [ ! -x \"$V/scrcpy\" ] || [ ! -x \"$V/adb\" ] || [ ! -f \"$V/scrcpy-server\" ]; then\n  echo \"error: Vendor/scrcpy is missing — run scripts/fetch-scrcpy.sh\" >&2; exit 1\nfi\nHAVE=\"$(cat \"$V/VERSION\" 2>/dev/null || echo none)\"\nif [ \"$HAVE\" != \"$SCRCPY_VERSION\" ]; then\n  echo \"error: Vendor/scrcpy is v$HAVE but scripts/scrcpy.lock pins v$SCRCPY_VERSION — run scripts/fetch-scrcpy.sh\" >&2; exit 1\nfi\nR=\"$SRCROOT/Vendor/rclone\"\nif [ ! -x \"$R/rclone\" ]; then\n  echo \"error: Vendor/rclone is missing — run scripts/fetch-rclone.sh\" >&2; exit 1\nfi\nHAVE=\"$(cat \"$R/VERSION\" 2>/dev/null || echo none)\"\nif [ \"$HAVE\" != \"$RCLONE_VERSION\" ]; then\n  echo \"error: Vendor/rclone is v$HAVE but scripts/rclone.lock pins v$RCLONE_VERSION — run scripts/fetch-rclone.sh\" >&2; exit 1\nfi\n";
 		};
 		F517EEF5762FCF45E0F80002 /* Embed Sefirah Phone helper */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1052,6 +1092,7 @@
 				6739D94484A62FF024909648 /* FeatureHubTests.swift in Sources */,
 				AB12CD34EF56010203040513 /* NotificationAttachmentImageTests.swift in Sources */,
 				8219271CACE7AE378D3B84A9 /* FileTransferFramingTests.swift in Sources */,
+				AE7A11000000000000000005 /* PhoneMountTests.swift in Sources */,
 				6F1D5021F8F945DDDD0A1E29 /* FixtureBytes.swift in Sources */,
 				8ABBAE4493E7323A8230152B /* IdentityStoreTests.swift in Sources */,
 				7A7B4FD3CA9C7D17620187F2 /* InputMappingTests.swift in Sources */,
@@ -1116,6 +1157,8 @@
 				AB12CD34EF56010203040511 /* NotificationAttachmentImage.swift in Sources */,
 				41D2708ED4EBD6C787205499 /* FileTransferClient.swift in Sources */,
 				1C4DB61DDCA02BE6434A224C /* FileTransferFraming.swift in Sources */,
+				AE7A11000000000000000001 /* PhoneMount.swift in Sources */,
+				AE7A11000000000000000003 /* PhoneMountController.swift in Sources */,
 				7AC01AF60996E9F6B5AE309E /* GeneralSettings.swift in Sources */,
 				07EBA3EB8A27FFDCFE49F591 /* HidKeyboard.swift in Sources */,
 				954F7BD0AEE0CA6379792A94 /* JSONDecoding.swift in Sources */,

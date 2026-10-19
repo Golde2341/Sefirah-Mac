@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var isShowingHiddenNotificationApps = false
     @State private var isAuthenticatingHiddenNotifications = false
     @State private var deviceToForget: ConnectedPeer?
+    @State private var hostNameError: String?
 
     var body: some View {
         Form {
@@ -31,6 +32,16 @@ struct SettingsView: View {
                     }
                 Toggle("Auto-connect when the phone disconnects", isOn: $model.general.autoReconnect)
                     .onChange(of: model.general.autoReconnect) { model.saveGeneral() }
+                Toggle("Call the mounted phone “Sefirah” in Finder", isOn: Binding(
+                    get: { model.finderHostAliasInstalled },
+                    set: { newValue in
+                        Task {
+                            do { try await model.setFinderHostAlias(newValue) }
+                            catch { hostNameError = error.localizedDescription }
+                        }
+                    }
+                ))
+                .help("Adds a “127.0.0.1 Sefirah” line to /etc/hosts after one administrator approval, so Finder's sidebar shows just “Sefirah”. Without it the phone's storage appears as “Sefirah.local”.")
                 Button("Save") { model.saveGeneral() }
             }
             Section("Menu bar") {
@@ -173,6 +184,17 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: { device in
             Text("\(device.name) will be unpaired, and its cached notifications, messages and settings will be removed. You'll need to pair it again to reconnect.")
+        }
+        .alert(
+            "Could not update the host name",
+            isPresented: Binding(
+                get: { hostNameError != nil },
+                set: { if !$0 { hostNameError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { hostNameError = nil }
+        } message: {
+            Text(hostNameError ?? "")
         }
     }
 

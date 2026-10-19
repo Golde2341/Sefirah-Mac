@@ -88,3 +88,24 @@ public struct NativeTools: Sendable, Equatable {
         return NativeTools(adb: adb, server: server, version: (version?.isEmpty ?? true) ? nil : version)
     }
 }
+
+/// The rclone helper backing the Finder mount (SFTP → loopback WebDAV bridge).
+///
+/// Optional on purpose: builds that skip `scripts/fetch-rclone.sh` simply don't offer the mount,
+/// and `BundledTools.locate(in:)` keeps its all-or-nothing contract for the scrcpy helpers.
+public enum MountTools {
+    public static func locateRclone(in bundle: Bundle = .main, fileManager: FileManager = .default) -> URL? {
+        locateRclone(
+            auxiliaryExecutable: { bundle.url(forAuxiliaryExecutable: $0) },
+            exists: { fileManager.fileExists(atPath: $0.path) }
+        )
+    }
+
+    static func locateRclone(
+        auxiliaryExecutable: (String) -> URL?,
+        exists: (URL) -> Bool
+    ) -> URL? {
+        guard let rclone = auxiliaryExecutable("rclone"), exists(rclone) else { return nil }
+        return rclone
+    }
+}

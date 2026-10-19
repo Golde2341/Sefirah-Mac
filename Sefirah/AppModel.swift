@@ -68,6 +68,10 @@ final class AppModel: PairingDecider {
     var deviceWallpapers: [String: NSImage] = [:]
     /// Static status shown under the rail actions while a send-to-phone is in flight or just finished.
     var fileTransferStatus: String?
+    /// Mounts the phone's storage in Finder (SFTP bridged to a loopback WebDAV volume).
+    let phoneMount: PhoneMountController
+    /// Bumped after the `/etc/hosts` "Sefirah" alias changes, so SwiftUI re-reads its state.
+    private var finderHostAliasRevision = 0
     var selectedDeviceID: String?
     var pendingPairing: DiscoveredPeer?
     var notifications: [NotificationSnapshot] = []
@@ -167,6 +171,7 @@ final class AppModel: PairingDecider {
         database = db
         hub = featureHub
         settings = loadedSettings
+        phoneMount = PhoneMountController(supportDirectory: support)
         identity = loadedIdentity
         localDevice = loadedLocal
         general = loadedGeneral
@@ -223,7 +228,10 @@ final class AppModel: PairingDecider {
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
         ) { [weak self] _ in
             runner.terminateAll()
-            MainActor.assumeIsolated { self?.mirrors.values.forEach { $0.emergencyStop() } }
+            MainActor.assumeIsolated {
+                self?.mirrors.values.forEach { $0.emergencyStop() }
+                self?.phoneMount.prepareForTermination()
+            }
         }
 
         if loadedGeneral.restartAdbServerOnLaunch {
@@ -1475,6 +1483,103 @@ final class AppModel: PairingDecider {
         }
     }
 
+    /// Mounts (or unmounts) `device`'s storage in Finder. The mount needs the phone's SFTP
+    /// credentials from the companion, so it is only offered while one is connected. Devices are
+    /// independent: mounting a second phone leaves the first one's volume mounted.
+    func togglePhoneMount(for device: ConnectedPeer) {
+        switch phoneMount.phase(for: device.id) {
+        case .mounting, .unmounting:
+            return
+        case .idle:
+            guard phoneMount.hasBundledBridge else {
+                sessionError = PhoneMountError.rcloneMissing.errorDescription
+                openSftp()
+                return
+            }
+            guard let sftp = hub.liveState(deviceId: device.id).lastSftp else {
+                sessionError = "Turn on “Remote storage” in Sefirah on the phone to mount its files on this Mac."
+                return
+            }
+            sessionError = nil
+            Task { [weak self] in
+                await self?.phoneMount.mount(
+                    deviceID: device.id,
+                    deviceName: device.name,
+                    sftp: sftp,
+                    host: device.address
+                )
+                if let error = self?.phoneMount.lastError(for: device.id) {
+                    self?.sessionError = error
+                }
+            }
+        case .mounted:
+            Task { [weak self] in
+                await self?.phoneMount.unmount(deviceID: device.id)
+                if let error = self?.phoneMount.lastError(for: device.id) {
+                    self?.sessionError = error
+                }
+            }
+        }
+    }
+
+    // MARK: - Finder host name
+
+    /// Whether this Mac's `/etc/hosts` maps "Sefirah" to loopback. When it does, Finder labels
+    /// the mounted phone's network volume just "Sefirah" instead of "Sefirah.local".
+    var finderHostAliasInstalled: Bool {
+        _ = finderHostAliasRevision
+        guard let contents = try? String(contentsOfFile: "/etc/hosts", encoding: .utf8) else { return false }
+        return PhoneMount.hostsFileMapsLoopback(contents, name: PhoneMount.finderHostName)
+    }
+
+    /// Adds or removes the suffix-free "Sefirah" host alias (one administrator approval). The new
+    /// name is used the next time a phone is mounted.
+    func setFinderHostAlias(_ enabled: Bool) async throws {
+        try await Self.updateHostsAlias(installed: enabled)
+        finderHostAliasRevision += 1
+    }
+
+    private static func updateHostsAlias(installed: Bool) async throws {
+        struct ScriptResult: Sendable {
+            var cancelled = false
+            var message: String?
+        }
+        let name = PhoneMount.finderHostName.lowercased()
+        let command: String
+        if installed {
+            command = """
+            grep -Eqi '^[[:space:]]*127\\.0\\.0\\.1[[:space:]]+([^#]*[[:space:]])?\(name)([[:space:]]|$)' /etc/hosts || printf '127.0.0.1\\t\(PhoneMount.finderHostName)\\n' >> /etc/hosts
+            """
+        } else {
+            command = """
+            tmp=$(mktemp) && grep -Evi '^[[:space:]]*127\\.0\\.0\\.1[[:space:]]+([^#]*[[:space:]])?\(name)([[:space:]]|$)' /etc/hosts > "$tmp" && cat "$tmp" > /etc/hosts; rm -f "$tmp"
+            """
+        }
+        let escaped = command
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let source = "do shell script \"\(escaped)\" with administrator privileges"
+        let result: ScriptResult = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                var info: NSDictionary?
+                NSAppleScript(source: source)?.executeAndReturnError(&info)
+                let number = (info?["NSAppleScriptErrorNumber"] as? NSNumber)?.intValue
+                let message = number == nil ? nil : info?["NSAppleScriptErrorMessage"] as? String
+                // -128: the approval sheet was dismissed; leave the host file untouched.
+                continuation.resume(returning: ScriptResult(cancelled: number == -128, message: message))
+            }
+        }
+        if result.cancelled { return }
+        if let message = result.message {
+            throw NSError(domain: "Sefirah", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+        }
+        let contents = (try? String(contentsOfFile: "/etc/hosts", encoding: .utf8)) ?? ""
+        guard PhoneMount.hostsFileMapsLoopback(contents, name: PhoneMount.finderHostName) == installed else {
+            throw NSError(domain: "Sefirah", code: 2, userInfo: [NSLocalizedDescriptionKey: "The host name could not be updated."])
+        }
+    }
+
+    /// Fallback for Macs without the bundled bridge: hand the SFTP URL to the system.
     func openSftp() {
         guard let sftp = live.lastSftp, let device = selectedDevice else { return }
         let path = sftp.paths.first
@@ -1637,6 +1742,7 @@ final class AppModel: PairingDecider {
             if let index = paired.firstIndex(where: { $0.id == deviceId }) {
                 paired[index].isConnected = false
             }
+            phoneMount.handleDisconnect(deviceID: deviceId)
             hub.markPlaybackConnection(deviceId: deviceId, connectedAt: nil)
             publishedAudioDevices[deviceId] = nil
             if selectedDeviceID == deviceId { refreshDevice() }

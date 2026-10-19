@@ -98,6 +98,9 @@
     "Add template" : {
 
     },
+    "Adds a “127.0.0.1 Sefirah” line to /etc/hosts after one administrator approval, so Finder's sidebar shows just “Sefirah”. Without it the phone's storage appears as “Sefirah.local”." : {
+
+    },
     "Advanced" : {
 
     },
@@ -146,9 +149,6 @@
     "Bit rate (e.g. 128K)" : {
 
     },
-    "Browse the phone's files" : {
-
-    },
     "Buffer: %lld ms" : {
 
     },
@@ -162,6 +162,9 @@
 
     },
     "Bundled scrcpy" : {
+
+    },
+    "Call the mounted phone “Sefirah” in Finder" : {
 
     },
     "Calls" : {
@@ -225,6 +228,9 @@
 
     },
     "Copy log" : {
+
+    },
+    "Could not update the host name" : {
 
     },
     "Crop (width:height:x:y)" : {
@@ -428,6 +434,9 @@
     "Mirror the phone screen" : {
 
     },
+    "Mount the phone's files in Finder" : {
+
+    },
     "Move down" : {
 
     },
@@ -504,6 +513,9 @@
 
     },
     "Off" : {
+
+    },
+    "OK" : {
 
     },
     "On" : {
@@ -828,6 +840,9 @@
 
     },
     "Unlock…" : {
+
+    },
+    "Unmount the phone's files" : {
 
     },
     "Unmute Audio" : {

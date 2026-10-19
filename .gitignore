@@ -433,6 +433,9 @@ Vendor/scrcpy/*
 !Vendor/scrcpy/README.md
 !Vendor/scrcpy/NOTICES.md
 
+# Vendored rclone (populated by scripts/fetch-rclone.sh)
+Vendor/rclone/*
+
 # Local release artifacts
 /dist/
 /build/
