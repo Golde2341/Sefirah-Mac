@@ -58,6 +58,36 @@ public enum AdbWirelessPairing {
         if let match = connect.first(where: { $0.host == host }) { return match }
         return connect.count == 1 ? connect[0] : nil
     }
+
+    /// The phone's adb serial when adb already reaches it over any transport:
+    /// 1. USB or classic TCP/IP (`address:6767`) — matched by model or address.
+    /// 2. Wireless debugging — matched by model, or by correlating the phone's
+    ///    `_adb-tls-connect` mDNS service with the device serial adb lists for it.
+    public static func connectedSerial(
+        devices: [AdbDevice],
+        services: [AdbMdnsService],
+        address: String,
+        model: String
+    ) -> String? {
+        if let match = AdbConnectionPriority.candidates(
+            devices: devices, address: address, model: model
+        ).first {
+            return match.serial
+        }
+        // Wireless debugging devices are listed under their mDNS instance name, which does not
+        // contain the address; correlate the connect service for this phone with the device list.
+        let connect = services.filter {
+            $0.serviceType.hasPrefix(connectServiceType) && $0.host == address
+        }
+        for service in connect {
+            if let device = devices.first(where: {
+                $0.state == "device" && $0.serial.hasPrefix(service.instance)
+            }) {
+                return device.serial
+            }
+        }
+        return nil
+    }
 }
 
 extension AdbClient {

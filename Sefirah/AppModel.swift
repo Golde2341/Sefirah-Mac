@@ -1368,15 +1368,25 @@ final class AppModel: PairingDecider {
         return true
     }
 
-    /// Builds a model for the Wireless-debugging QR pairing sheet, or nil when adb is unavailable.
-    func makeWirelessPairingModel() -> WirelessPairingModel? {
-        guard let adb = resolvedAdb else { return nil }
+    /// Builds a model for the Wireless-debugging QR pairing sheet for a paired phone, or nil when
+    /// adb is unavailable. The phone's address and model let the sheet recognise its USB, TCP/IP
+    /// and wireless-debugging transports while it polls.
+    func makeWirelessPairingModel(deviceID: String) -> WirelessPairingModel? {
+        guard let adb = resolvedAdb,
+              let device = paired.first(where: { $0.id == deviceID })
+        else { return nil }
         var env = ProcessInfo.processInfo.environment
         if env["HOME"] == nil { env["HOME"] = NSHomeDirectory() }
         if env["PATH"] == nil { env["PATH"] = ScrcpyLaunchPlanner.defaultPath }
         // Force the built-in mDNS backend on older platform-tools; harmless on current ones.
         env["ADB_MDNS_OPENSCREEN"] = "1"
-        let context = WirelessPairingContext(adb: adb, environment: env, runner: commandRunner)
+        let context = WirelessPairingContext(
+            adb: adb,
+            environment: env,
+            runner: commandRunner,
+            peerAddress: device.address,
+            peerModel: device.model
+        )
         return WirelessPairingModel(context: context) { [weak self] _ in
             Task { @MainActor in await self?.refreshAdbOnlineState() }
         }

@@ -80,6 +80,64 @@ final class AdbWirelessTests: XCTestCase {
         XCTAssertEqual(AdbWirelessPairing.connectService(in: lone, host: "10.0.0.9")?.port, 40002)
     }
 
+    func testConnectedSerialRecognisesAllTransports() {
+        let usb = AdbDevice(serial: "USB1", state: "device", model: "Pixel_7")
+        XCTAssertEqual(
+            AdbWirelessPairing.connectedSerial(
+                devices: [usb], services: [], address: "10.0.0.2", model: "Pixel 7"
+            ),
+            "USB1"
+        )
+
+        let tcpip = AdbDevice(serial: "10.0.0.2:6767", state: "device", model: nil)
+        XCTAssertEqual(
+            AdbWirelessPairing.connectedSerial(
+                devices: [tcpip], services: [], address: "10.0.0.2", model: "Pixel 7"
+            ),
+            "10.0.0.2:6767"
+        )
+
+        // Wireless debugging is matched by model…
+        let wireless = AdbDevice(
+            serial: "adb-43081-TnSdi9._adb-tls-connect._tcp", state: "device", model: "Pixel_7"
+        )
+        XCTAssertEqual(
+            AdbWirelessPairing.connectedSerial(
+                devices: [wireless], services: [], address: "10.0.0.2", model: "Pixel 7"
+            ),
+            wireless.serial
+        )
+
+        // …or through the phone's mDNS connect service when the model doesn't match.
+        let service = AdbMdnsService(
+            instance: "adb-43081-TnSdi9", serviceType: "_adb-tls-connect._tcp", host: "10.0.0.2", port: 41234
+        )
+        XCTAssertEqual(
+            AdbWirelessPairing.connectedSerial(
+                devices: [wireless], services: [service], address: "10.0.0.2", model: "Unknown Model"
+            ),
+            wireless.serial
+        )
+
+        // Another phone's connect service and offline devices don't qualify.
+        let foreign = AdbMdnsService(
+            instance: "adb-99999-abcdef", serviceType: "_adb-tls-connect._tcp", host: "10.0.0.9", port: 40000
+        )
+        XCTAssertNil(
+            AdbWirelessPairing.connectedSerial(
+                devices: [wireless], services: [foreign], address: "10.0.0.2", model: "Unknown Model"
+            )
+        )
+        let offline = AdbDevice(
+            serial: "adb-43081-TnSdi9._adb-tls-connect._tcp", state: "offline", model: "Pixel_7"
+        )
+        XCTAssertNil(
+            AdbWirelessPairing.connectedSerial(
+                devices: [offline], services: [service], address: "10.0.0.2", model: "Pixel 7"
+            )
+        )
+    }
+
     func testPairSucceeded() {
         XCTAssertTrue(AdbOutput.pairSucceeded("Successfully paired to 10.0.0.2:37231 [guid=adb-xyz]"))
         XCTAssertTrue(AdbOutput.pairSucceeded("Already paired to 10.0.0.2:37231"))

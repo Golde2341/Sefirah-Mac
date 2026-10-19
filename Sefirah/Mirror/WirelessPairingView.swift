@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import SefirahCore
 import SwiftUI
 
@@ -7,6 +8,9 @@ struct WirelessPairingContext {
     var adb: URL
     var environment: [String: String]
     var runner: any CommandRunning
+    /// The paired phone being connected; used to recognise any of its adb transports.
+    var peerAddress: String
+    var peerModel: String
 }
 
 /// Drives the "pair over Wi-Fi (QR code)" sheet.
@@ -35,6 +39,13 @@ final class WirelessPairingModel: Identifiable {
     private let context: WirelessPairingContext
     private let onConnected: @MainActor (String) -> Void
     private var task: Task<Void, Never>?
+
+    private nonisolated static let log = Logger(
+        subsystem: "io.github.madeye.sefirah.mac", category: "wireless-pairing"
+    )
+
+    /// Re-check adb's mDNS view / device list twice a second while the sheet is open.
+    private static let pollInterval: Duration = .milliseconds(500)
 
     init(context: WirelessPairingContext, onConnected: @escaping @MainActor (String) -> Void) {
         self.context = context
@@ -101,13 +112,19 @@ final class WirelessPairingModel: Identifiable {
         var pairing: AdbMdnsService?
         let pairDeadline = Date().addingTimeInterval(120)
         while !Task.isCancelled, Date() < pairDeadline {
-            if let services = try? await client.mdnsServices(),
-               let match = AdbWirelessPairing.pairingService(in: services, name: serviceName)
-            {
+            let snapshot = await self.snapshot(client: client)
+            // adb already reaches the phone over USB, TCP/IP or wireless debugging — nothing left
+            // to pair, so the sheet can close right away.
+            if let serial = connectedSerial(in: snapshot) {
+                phase = .connected(serial: serial)
+                onConnected(serial)
+                return
+            }
+            if let match = AdbWirelessPairing.pairingService(in: snapshot.services, name: serviceName) {
                 pairing = match
                 break
             }
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: Self.pollInterval)
         }
         guard let pairing else {
             if !Task.isCancelled {
@@ -117,6 +134,7 @@ final class WirelessPairingModel: Identifiable {
         }
 
         phase = .pairing
+        Self.log.notice("pairing with \(pairing.host, privacy: .public):\(pairing.port)")
         do {
             try await client.pair(host: pairing.host, port: pairing.port, code: password)
         } catch {
@@ -125,7 +143,7 @@ final class WirelessPairingModel: Identifiable {
         }
 
         phase = .connecting
-        if let serial = await connect(client: client, host: pairing.host) {
+        if let serial = await waitForConnectedDevice(client: client, host: pairing.host) {
             // A QR pairing also opens the classic TCP/IP port (6767) so Sefirah keeps a stable
             // `ip:6767` endpoint going forward. Restarting adbd drops the wireless transport, so
             // if the switch fails we restore the wireless connection instead.
@@ -137,6 +155,7 @@ final class WirelessPairingModel: Identifiable {
             } else {
                 preferred = serial
             }
+            Self.log.notice("connected as \(preferred, privacy: .public)")
             phase = .connected(serial: preferred)
             onConnected(preferred)
         } else {
@@ -144,24 +163,45 @@ final class WirelessPairingModel: Identifiable {
         }
     }
 
-    private func connect(client: AdbClient, host: String) async -> String? {
+    /// One sample of adb's device list plus its mDNS services.
+    private func snapshot(client: AdbClient) async -> (devices: [AdbDevice], services: [AdbMdnsService]) {
+        let devices = (try? await client.devices()) ?? []
+        let services = (try? await client.mdnsServices()) ?? []
+        return (devices, services)
+    }
+
+    /// The phone's serial if adb reaches it over USB, TCP/IP or wireless debugging. Logs every ping
+    /// so the polling is visible in Console / `log stream`.
+    private func connectedSerial(
+        in snapshot: (devices: [AdbDevice], services: [AdbMdnsService])
+    ) -> String? {
+        if let serial = AdbWirelessPairing.connectedSerial(
+            devices: snapshot.devices,
+            services: snapshot.services,
+            address: context.peerAddress,
+            model: context.peerModel
+        ) {
+            Self.log.notice("ping: \(self.context.peerAddress, privacy: .public) connected as \(serial, privacy: .public)")
+            return serial
+        }
+        let seen = snapshot.devices.map(\.serial).joined(separator: ", ")
+        Self.log.notice("ping: no match for \(self.context.peerAddress, privacy: .public); adb sees [\(seen, privacy: .public)]")
+        return nil
+    }
+
+    private func waitForConnectedDevice(client: AdbClient, host: String) async -> String? {
         let deadline = Date().addingTimeInterval(30)
         while !Task.isCancelled, Date() < deadline {
-            // adb auto-connects to paired devices it sees over mDNS; prefer that.
-            if let devices = try? await client.devices(),
-               let connected = devices.first(where: {
-                   $0.state == "device" && $0.isTcp && $0.serial.hasPrefix("\(host):")
-               })
-            {
-                return connected.serial
+            let snapshot = await self.snapshot(client: client)
+            if let serial = connectedSerial(in: snapshot) {
+                return serial
             }
-            if let services = try? await client.mdnsServices(),
-               let service = AdbWirelessPairing.connectService(in: services, host: host),
-               (try? await client.connect(host: service.host, port: service.port)) != nil
+            if let service = AdbWirelessPairing.connectService(in: snapshot.services, host: host),
+               let connected = try? await client.connect(host: service.host, port: service.port)
             {
-                return "\(service.host):\(service.port)"
+                return connected
             }
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: Self.pollInterval)
         }
         return nil
     }
@@ -217,6 +257,10 @@ struct WirelessPairingView: View {
         .padding(24)
         .frame(width: 400)
         .task { model.start() }
+        .onChange(of: model.phase) { _, phase in
+            // Pairing finished and the device is reachable: close the sheet unprompted.
+            if case .connected = phase { dismiss() }
+        }
         .onDisappear { model.cancel() }
     }
 }

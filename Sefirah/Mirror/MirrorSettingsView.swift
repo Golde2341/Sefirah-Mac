@@ -51,7 +51,7 @@ struct MirrorSettingsView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Pair…") { wirelessPairing = model.makeWirelessPairingModel() }
+            Button("Pair…") { wirelessPairing = model.makeWirelessPairingModel(deviceID: id) }
                 .disabled(!model.canWirelessPair)
         }
         Toggle("Turn phone screen off while mirroring", isOn: bind(id, \.screenOff))

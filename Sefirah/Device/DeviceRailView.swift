@@ -136,7 +136,7 @@ struct DeviceRailView: View {
                     let connected = await model.connectAdb(for: device.id)
                     isCheckingAdb = false
                     if !connected {
-                        wirelessPairing = model.makeWirelessPairingModel()
+                        wirelessPairing = model.makeWirelessPairingModel(deviceID: device.id)
                     }
                 }
             }
